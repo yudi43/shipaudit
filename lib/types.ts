@@ -21,6 +21,10 @@ export type DeployPlatform =
   | 'Netlify'
   | 'Render'
   | 'Fly.io'
+  | 'Node.js'
+  | 'PHP'
+  | 'nginx'
+  | 'Apache'
   | 'Unknown'
 
 export interface DetectedStack {

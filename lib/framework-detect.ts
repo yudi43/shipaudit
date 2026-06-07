@@ -72,6 +72,22 @@ export async function detectFramework(url: string): Promise<DetectedStack> {
     } else if (headers.get('fly-request-id')) {
       deployPlatform = 'Fly.io'
       rawSignals.push('header:fly-request-id')
+    } else {
+      const xPoweredBy = headers.get('x-powered-by')?.toLowerCase() ?? ''
+      const serverHeader = headers.get('server')?.toLowerCase() ?? ''
+      if (xPoweredBy.includes('express') || xPoweredBy.includes('node')) {
+        deployPlatform = 'Node.js'
+        rawSignals.push('header:x-powered-by:express')
+      } else if (xPoweredBy.includes('php')) {
+        deployPlatform = 'PHP'
+        rawSignals.push('header:x-powered-by:php')
+      } else if (serverHeader.includes('nginx')) {
+        deployPlatform = 'nginx'
+        rawSignals.push('header:server:nginx')
+      } else if (serverHeader.includes('apache')) {
+        deployPlatform = 'Apache'
+        rawSignals.push('header:server:apache')
+      }
     }
 
     // ── Tailwind detection ───────────────────────────────────────────────────
