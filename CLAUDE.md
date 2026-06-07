@@ -141,6 +141,7 @@ GROQ_API_KEY
 UPSTASH_REDIS_REST_URL
 UPSTASH_REDIS_REST_TOKEN
 RESEND_API_KEY
+FOUNDER_EMAIL                ← Your personal email, must be verified in Resend dashboard
 LIGHTHOUSE_WORKER_URL        ← http://localhost:3001 for local dev
 GITHUB_APP_ID                ← Phase 2, leave empty
 GITHUB_APP_PRIVATE_KEY       ← Phase 2, leave empty

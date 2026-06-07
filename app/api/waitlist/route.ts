@@ -21,20 +21,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
   }
 
-  await resend.emails.send({
-    from: 'ShipAudit <onboarding@resend.dev>',
-    to: email,
-    subject: "You're on the ShipAudit waitlist",
-    text: [
-      "Thanks for signing up — you're on the list.",
-      '',
-      "We're building ShipAudit Phase 2: continuous performance monitoring, GitHub PR checks, and team dashboards.",
-      '',
-      "We'll reach out when it's ready.",
-      '',
-      '— ShipAudit',
-    ].join('\n'),
-  })
+  console.log('Waitlist signup:', email)
+
+  try {
+    // TODO: re-enable user confirmation once custom domain is verified in Resend.
+    // In sandbox mode Resend can only deliver to verified addresses, so we skip
+    // the user confirmation to avoid silent failures for unverified recipients.
+
+    await resend.emails.send({
+      from: 'ShipAudit <onboarding@resend.dev>',
+      to: process.env.FOUNDER_EMAIL!,
+      subject: `New waitlist signup: ${email}`,
+      html: `
+        <p>New ShipAudit Guard waitlist signup: <strong>${email}</strong></p>
+        <p>Time: ${new Date().toISOString()}</p>
+      `,
+    })
+  } catch (err) {
+    console.error('Resend error:', err)
+    // Still return success to the user — their email is recorded in the log
+  }
 
   return NextResponse.json({ ok: true })
 }
