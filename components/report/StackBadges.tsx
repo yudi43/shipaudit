@@ -1,22 +1,21 @@
-import { Globe, Layers, Wind } from 'lucide-react'
 import type { DetectedStack } from '@/lib/types'
 
 export function StackBadges({ stack }: { stack: DetectedStack }) {
-  const badges = [
-    { icon: <Layers className="w-3 h-3" />, label: stack.framework },
-    { icon: <Globe className="w-3 h-3" />, label: stack.deployPlatform },
-    ...(stack.hasTailwind ? [{ icon: <Wind className="w-3 h-3" />, label: 'Tailwind CSS' }] : []),
-  ]
+  const badges: string[] = []
+  if (stack.framework !== 'Unknown') badges.push(stack.framework)
+  if (stack.deployPlatform !== 'Unknown') badges.push(stack.deployPlatform)
+  if (stack.hasTailwind) badges.push('Tailwind CSS')
+
+  if (badges.length === 0) return null
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {badges.map((b) => (
+    <div className="flex flex-wrap gap-1.5">
+      {badges.map((label) => (
         <span
-          key={b.label}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400 text-xs font-medium"
+          key={label}
+          className="px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-mono"
         >
-          {b.icon}
-          {b.label}
+          {label}
         </span>
       ))}
     </div>

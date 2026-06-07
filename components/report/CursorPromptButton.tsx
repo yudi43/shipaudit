@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Copy, Check } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export function CursorPromptButton({ cursorPrompt }: { cursorPrompt: string }) {
   const [copied, setCopied] = useState(false)
@@ -15,54 +15,26 @@ export function CursorPromptButton({ cursorPrompt }: { cursorPrompt: string }) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const preview = cursorPrompt.length > 120
-    ? cursorPrompt.slice(0, 120) + '…'
-    : cursorPrompt
+  const preview = cursorPrompt.length > 140 ? cursorPrompt.slice(0, 140) + '…' : cursorPrompt
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Prompt preview */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-        <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2 font-medium">Cursor / Claude Code prompt</p>
-        <p className="text-zinc-400 font-mono text-xs leading-relaxed">{preview}</p>
+      <p className="text-slate-400 text-xs font-mono uppercase tracking-widest">AI Fix Prompt</p>
+      <div className="bg-slate-50 rounded-lg px-3 py-2.5 border border-slate-200">
+        <p className="text-slate-500 text-xs font-mono leading-relaxed line-clamp-2">{preview}</p>
       </div>
-
-      {/* Copy button */}
-      <motion.button
+      <button
         onClick={handleCopy}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.98 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-        className="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-xl font-semibold text-sm transition-colors bg-indigo-600 hover:bg-indigo-500 text-white"
+        className={cn(
+          'w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-sm transition-colors',
+          copied
+            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+            : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+        )}
       >
-        <AnimatePresence mode="wait" initial={false}>
-          {copied ? (
-            <motion.span
-              key="copied"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-center gap-2"
-            >
-              <Check className="w-4 h-4" />
-              Copied to clipboard
-            </motion.span>
-          ) : (
-            <motion.span
-              key="copy"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-center gap-2"
-            >
-              <Copy className="w-4 h-4" />
-              Copy Cursor Prompt
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </motion.button>
+        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+        {copied ? '✓ Copied to clipboard' : 'Copy AI Fix Prompt'}
+      </button>
     </div>
   )
 }

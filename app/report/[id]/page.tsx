@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Redis } from '@upstash/redis'
 import type { AuditReport } from '@/lib/types'
-import { AnimatedSection } from '@/components/report/AnimatedSection'
+import { ReportFadeIn } from '@/components/report/ReportFadeIn'
 import { StackBadges } from '@/components/report/StackBadges'
 import { ScoreCard } from '@/components/report/ScoreCard'
 import { ExecutiveSummary } from '@/components/report/ExecutiveSummary'
@@ -28,51 +28,79 @@ export default async function ReportPage({
   if (!report) notFound()
 
   const auditedAt = new Date(report.createdAt).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
   })
 
-  const sections: { label: string; node: React.ReactNode }[] = [
-    { label: 'stack',    node: <StackBadges stack={report.stack} /> },
-    { label: 'score',    node: <ScoreCard score={report.score} /> },
-    { label: 'summary',  node: <ExecutiveSummary summary={report.executiveSummary} /> },
-    { label: 'vitals',   node: <VitalsGrid vitals={report.vitals} /> },
-    { label: 'findings', node: <FindingsList findings={report.findings} /> },
-    { label: 'cursor',   node: <CursorPromptButton cursorPrompt={report.cursorPrompt} /> },
-    { label: 'export',   node: <ExportButton report={report} /> },
-    { label: 'waitlist', node: <WaitlistCTA findingCount={report.findings.length} /> },
-  ]
+  const hasStack =
+    report.stack.framework !== 'Unknown' ||
+    report.stack.deployPlatform !== 'Unknown' ||
+    report.stack.hasTailwind
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
-      <div className="max-w-3xl mx-auto px-6 py-12">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-10">
-          <div className="flex flex-col gap-1.5">
-            <Link
-              href="/"
-              className="text-zinc-500 text-sm hover:text-zinc-300 transition-colors inline-flex items-center gap-1"
-            >
-              ← Analyze another URL
-            </Link>
-            <p className="text-zinc-500 text-sm font-mono break-all">{report.url}</p>
-            <p className="text-zinc-700 text-xs">Audited {auditedAt}</p>
-          </div>
-          <ReanalyzeButton url={report.url} />
-        </div>
+    <div className="min-h-screen bg-white">
+      <ReportFadeIn>
+        <div className="max-w-2xl mx-auto px-6 py-10">
 
-        {/* Sections */}
-        <div className="flex flex-col divide-y divide-zinc-800">
-          {sections.map(({ label, node }) => (
-            <div key={label} className="py-10">
-              <AnimatedSection>{node}</AnimatedSection>
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4 mb-10 pb-6 border-b border-slate-200">
+            <div className="flex flex-col gap-1">
+              <Link
+                href="/"
+                className="text-indigo-600 text-sm hover:text-indigo-500 transition-colors"
+              >
+                ← Analyze another URL
+              </Link>
+              <p className="text-slate-700 text-sm font-mono break-all">{report.url}</p>
+              <p className="text-slate-400 text-xs">Audited {auditedAt}</p>
             </div>
-          ))}
+            <ReanalyzeButton url={report.url} />
+          </div>
+
+          {/* Sections */}
+          <div className="flex flex-col divide-y divide-slate-200">
+
+            {hasStack && (
+              <section className="py-8">
+                <StackBadges stack={report.stack} />
+              </section>
+            )}
+
+            <section className="py-8">
+              <ScoreCard score={report.score} />
+            </section>
+
+            {report.executiveSummary && (
+              <section className="py-8">
+                <ExecutiveSummary summary={report.executiveSummary} />
+              </section>
+            )}
+
+            {report.vitals.length > 0 && (
+              <section className="py-8">
+                <VitalsGrid vitals={report.vitals} />
+              </section>
+            )}
+
+            <section className="py-8">
+              <FindingsList findings={report.findings} />
+            </section>
+
+            <section className="py-8">
+              <CursorPromptButton cursorPrompt={report.cursorPrompt} />
+            </section>
+
+            <section className="py-8 flex">
+              <ExportButton report={report} />
+            </section>
+
+            <section className="py-8">
+              <WaitlistCTA findingCount={report.findings.length} />
+            </section>
+
+          </div>
         </div>
-      </div>
+      </ReportFadeIn>
     </div>
   )
 }

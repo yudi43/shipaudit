@@ -29,8 +29,8 @@ export function ReanalyzeButton({ url }: { url: string }) {
       onClick={handle}
       disabled={loading}
       className={cn(
-        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm transition-colors',
-        'border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200',
+        'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors',
+        'bg-slate-100 text-slate-600 hover:bg-slate-200',
         loading && 'opacity-50 cursor-not-allowed'
       )}
     >

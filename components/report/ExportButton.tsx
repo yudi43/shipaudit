@@ -1,17 +1,14 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, GitBranch, Download, Link2 } from 'lucide-react'
+import { ChevronDown, GitBranch, Download, Layout } from 'lucide-react'
 import type { AuditReport } from '@/lib/types'
 
 function buildMarkdown(report: AuditReport): string {
   const vitalsTable = [
     '| Metric | Value | Status |',
     '|--------|-------|--------|',
-    ...report.vitals.map(
-      (v) => `| ${v.metric} | ${v.value}${v.unit} | ${v.status} |`
-    ),
+    ...report.vitals.map((v) => `| ${v.metric} | ${v.value}${v.unit} | ${v.status} |`),
   ].join('\n')
 
   const findingsList = report.findings
@@ -35,7 +32,7 @@ function buildMarkdown(report: AuditReport): string {
     '### Top Issues',
     findingsList,
     '',
-    '### Cursor Fix Prompt',
+    '### AI Fix Prompt',
     '```',
     report.cursorPrompt,
     '```',
@@ -74,47 +71,35 @@ export function ExportButton({ report }: { report: AuditReport }) {
   }
 
   const options = [
-    { icon: <GitBranch className="w-4 h-4" />, label: 'GitHub Issue', action: () => copyToClipboard('GitHub Issue') },
-    { icon: <Link2 className="w-4 h-4" />, label: 'Linear Ticket', action: () => copyToClipboard('Linear Ticket') },
-    { icon: <Download className="w-4 h-4" />, label: 'Download Markdown', action: downloadMarkdown },
+    { icon: <GitBranch className="w-3.5 h-3.5" />, label: 'GitHub Issue',      action: () => copyToClipboard('GitHub Issue') },
+    { icon: <Layout className="w-3.5 h-3.5" />,    label: 'Linear Ticket',     action: () => copyToClipboard('Linear Ticket') },
+    { icon: <Download className="w-3.5 h-3.5" />,  label: 'Download Markdown', action: downloadMarkdown },
   ]
-
-  const buttonLabel = copied ? `Copied for ${copied}` : 'Export'
 
   return (
     <div ref={ref} className="relative inline-block">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-700 text-zinc-300 text-sm font-medium hover:border-zinc-600 hover:text-zinc-100 transition-colors"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-200 text-slate-600 text-sm hover:border-slate-300 hover:text-slate-700 transition-colors"
       >
-        {buttonLabel}
-        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown className="w-4 h-4" />
-        </motion.span>
+        {copied ? 'Copied' : 'Export'}
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.97 }}
-            transition={{ duration: 0.15 }}
-            className="absolute left-0 mt-2 w-48 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl overflow-hidden z-20"
-          >
-            {options.map((o) => (
-              <button
-                key={o.label}
-                onClick={o.action}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left"
-              >
-                <span className="text-zinc-500">{o.icon}</span>
-                {o.label}
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {open && (
+        <div className="absolute left-0 mt-1.5 w-44 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden z-20">
+          {options.map((o) => (
+            <button
+              key={o.label}
+              onClick={o.action}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-left"
+            >
+              <span className="text-slate-400">{o.icon}</span>
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
