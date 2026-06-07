@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+/lighthouse-worker/node_modules
+/lighthouse-worker/dist

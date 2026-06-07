@@ -137,7 +137,7 @@ Every interaction should feel considered and polished.
 ## Environment variables
 
 ```
-ANTHROPIC_API_KEY
+GROQ_API_KEY
 UPSTASH_REDIS_REST_URL
 UPSTASH_REDIS_REST_TOKEN
 RESEND_API_KEY
