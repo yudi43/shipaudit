@@ -53,7 +53,7 @@ TTFB:  78ms  ✓ Good
 | Styling | Tailwind CSS + Framer Motion |
 | AI | Groq — `llama-3.3-70b-versatile` |
 | Performance analysis | Lighthouse + headless Chromium |
-| Report cache | Upstash Redis (6h TTL, force-refresh supported) |
+| Report cache | Upstash Redis (1h TTL, force-refresh supported) |
 | Email | Resend |
 | Frontend deploy | Vercel |
 | Lighthouse worker | Railway (separate service — no timeout constraints) |
@@ -88,23 +88,18 @@ POST /api/audit { url }
 - Node.js 18+
 - npm
 
-### 1. Clone and install
+### 1. Install dependencies
 
 ```bash
-git clone https://github.com/yourusername/shipaudit.git
 cd shipaudit
 npm install
-```
 
-### 2. Install Lighthouse worker dependencies
-
-```bash
 cd lighthouse-worker
 npm install
 cd ..
 ```
 
-### 3. Set up environment variables
+### 2. Set up environment variables
 
 ```bash
 cp .env.example .env.local
@@ -127,7 +122,7 @@ RESEND_API_KEY=
 LIGHTHOUSE_WORKER_URL=http://localhost:3001
 ```
 
-### 4. Run both services
+### 3. Run both services
 
 **Terminal 1 — Lighthouse worker:**
 ```bash
@@ -142,7 +137,7 @@ npm run dev
 # → Ready at http://localhost:3000
 ```
 
-### 5. Test the pipeline
+### 4. Test the pipeline
 
 ```bash
 curl -X POST http://localhost:3001/audit \
@@ -217,7 +212,7 @@ No error tracking. No session replay. No logs. No traces. Every feature request 
 ShipAudit detects Next.js, Nuxt, Astro, Angular, Vue, Svelte, Remix, and 7 others from HTML signals and response headers. It never tells you this is happening — it just makes the fix recommendations accurate.
 
 **The Cursor prompt is the most important feature.**
-Every report ends with a single button that copies a framework-specific, finding-specific fix prompt to your clipboard — ready to paste into Cursor or Claude Code. The target: ≥ 20% of report viewers click it. If that number is below 20%, the core Phase 2 assumption needs revisiting.
+Every report ends with a single button that copies a framework-specific, finding-specific fix prompt to your clipboard — ready to paste into Cursor or Claude Code. The target: ≥ 20% of report viewers click it.
 
 ---
 
@@ -248,12 +243,6 @@ Likely cause: components/Analytics.tsx
 ```
 
 [Join the waitlist →](https://shipaudit.com)
-
----
-
-## Contributing
-
-Issues and PRs welcome. Before opening a PR, check that your change passes the filter: is this making ShipAudit a better deployment reviewer, or is it creeping toward observability?
 
 ---
 
