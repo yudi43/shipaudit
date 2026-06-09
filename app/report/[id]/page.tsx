@@ -15,6 +15,7 @@ import { CursorPromptButton } from '@/components/report/CursorPromptButton'
 import { ExportButton } from '@/components/report/ExportButton'
 import { WaitlistCTA } from '@/components/report/WaitlistCTA'
 import { ReanalyzeButton } from '@/components/report/ReanalyzeButton'
+import { MeasurementContext } from '@/components/report/MeasurementContext'
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -71,6 +72,10 @@ export default async function ReportPage({
                 <StackBadges stack={report.stack} />
               </section>
             )}
+
+            <section className="pb-6">
+              <MeasurementContext />
+            </section>
 
             <section className="py-8">
               <ScoreCard score={report.score} />

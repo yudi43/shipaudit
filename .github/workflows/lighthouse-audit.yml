@@ -38,7 +38,7 @@ jobs:
           lighthouse "${{ github.event.inputs.url }}" \
             --output=json \
             --output-path=./lhr.json \
-            --chrome-flags="--headless --no-sandbox --disable-gpu" \
+            --chrome-flags="--headless --no-sandbox --disable-gpu --no-first-run" \
             --quiet || echo "Lighthouse exited with error"
 
       - name: Send results to callback

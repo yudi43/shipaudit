@@ -70,6 +70,8 @@ Core Web Vitals: ${vitalLines}
 Top opportunities:
 ${findingLines}${extraSection}
 
+Important context: This audit was run with mobile CPU throttling and simulated 4G network — the same methodology Google uses for real-world CWV measurement. Scores will be lower than DevTools which runs on the developer's fast local machine. Frame findings in terms of real user experience, not DevTools comparison. Never say the score is 'low' — say it reflects performance under real-world mobile conditions.
+
 Write 2-3 sentences of plain English that tell the performance story of this site.
 Rules:
 - Lead with the performance story, not a list of numbers

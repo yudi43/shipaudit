@@ -31,7 +31,7 @@ export function ScoreCard({ score }: { score: ShipAuditScore }) {
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <p className="text-slate-400 text-[11px] font-mono uppercase tracking-widest self-start">SHIPAUDIT SCORE</p>
+      <p className="text-slate-400 text-[11px] font-mono uppercase tracking-widest self-start">SHIPAUDIT SCORE — STRESS TEST</p>
 
       {/* Arc */}
       <div className="relative">
@@ -61,9 +61,14 @@ export function ScoreCard({ score }: { score: ShipAuditScore }) {
 
       {/* Achievable — only show if there's room to improve */}
       {score.achievable > score.current && (
-        <p className="text-slate-500 text-sm -mt-2">
-          Achievable: <span className="text-slate-700 font-mono font-semibold">{score.achievable}</span>/100
-        </p>
+        <div className="flex flex-col items-center gap-1 -mt-2">
+          <p className="text-slate-500 text-sm">
+            Achievable: <span className="text-slate-700 font-mono font-semibold">{score.achievable}</span>/100
+          </p>
+          <p className="text-slate-400 text-xs text-center max-w-xs">
+            Your DevTools score will be higher — this measures performance on throttled mobile, not your local machine.
+          </p>
+        </div>
       )}
 
       {/* Score breakdown */}

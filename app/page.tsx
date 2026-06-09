@@ -209,7 +209,7 @@ export default function Home() {
             transition={{ delay: 0.45, duration: 0.5 }}
             className="text-slate-400 text-sm max-w-xs leading-relaxed"
           >
-            No account. No setup. Instant AI analysis with framework-specific fix instructions.
+            No account. No setup. Audited under real-world mobile conditions — the same way Google measures your actual users.
           </motion.p>
 
           {/* Pill input */}
@@ -252,7 +252,7 @@ export default function Home() {
             transition={{ delay: 0.7, duration: 0.45 }}
             className="flex flex-wrap items-center justify-center gap-2"
           >
-            {['⚡ Under 90s', '✓ Google CWV thresholds', '⚙ Framework-aware fixes'].map((label) => (
+            {['⚡ Under 90s', '✓ Real-world mobile conditions', '⚙ Framework-aware fixes'].map((label) => (
               <span
                 key={label}
                 className="px-2.5 py-1 rounded-full bg-[#0f172a] border border-[#1e293b] text-slate-500 text-xs"
