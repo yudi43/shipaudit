@@ -48,14 +48,26 @@ POST /api/audit { url }
   → normalizeUrl()
   → check Redis cache (return reportId if hit)
   → detectFramework() — fetch HTML + headers
-  → POST lighthouse-worker/audit { url } — returns raw LHR JSON
+  → trigger GitHub Actions workflow (lighthouse-audit.yml) with url + auditId + callbackUrl
+  → poll Redis every 3s (max 3 min) for lhr:{auditId} posted by the workflow
   → parseVitals(lhr) — deterministic
   → runRuleEngine(lhr, framework) — deterministic
+  → analyzeThirdParties / analyzeImages / analyzeFonts — deterministic
   → generateExecutiveSummary() — Claude prose only
   → generateCursorPrompt() — Claude prose only
-  → cache report in Redis (6h TTL)
+  → cache report in Redis (1h TTL)
   → return { reportId }
 ```
+
+### GitHub Actions Lighthouse runner
+Lighthouse runs inside a GitHub Actions workflow (`.github/workflows/lighthouse-audit.yml`).
+The workflow is triggered via `workflow_dispatch` by `POST /api/audit`, runs Lighthouse on
+the target URL, then POSTs the raw LHR JSON back to `/api/audit/callback` with the
+`x-audit-secret` and `x-audit-id` headers. The callback stores the result in Redis so the
+polling loop in `route.ts` can pick it up.
+
+The `AUDIT_CALLBACK_SECRET` GitHub Actions secret must match the Vercel env var of the same
+name. The GitHub token needs `actions:write` permission to trigger workflows.
 
 ### Claude's role is strictly prose
 Claude (via `lib/summarize.ts`) writes the executive summary and the Cursor fix prompt.
@@ -73,10 +85,10 @@ reports are reproducible. Do not add randomness, AI reranking, or dynamic weight
 - Best Practices: 15%
 Composite is 0–100. Achievable = current + top-3 impacts, capped at 100.
 
-### Lighthouse worker lives on Railway
-The worker is a separate Express service in `lighthouse-worker/`. It exists because Vercel
-Hobby functions time out at 10s — Lighthouse needs 20–50s. Do not attempt to run Lighthouse
-inside Next.js API routes.
+### lighthouse-worker/ is retired
+The `lighthouse-worker/` Express service is no longer used in production. Lighthouse runs
+via GitHub Actions (see above). The directory is kept for reference but is excluded from
+the Vercel build via `.vercelignore` and `tsconfig.json`.
 
 ---
 
@@ -142,7 +154,10 @@ UPSTASH_REDIS_REST_URL
 UPSTASH_REDIS_REST_TOKEN
 RESEND_API_KEY
 FOUNDER_EMAIL                ← Your personal email, must be verified in Resend dashboard
-LIGHTHOUSE_WORKER_URL        ← http://localhost:3001 for local dev
+GITHUB_TOKEN                 ← Personal access token with actions:write scope
+GITHUB_REPO_OWNER            ← e.g. buildwithyudi
+GITHUB_REPO_NAME             ← e.g. shipaudit
+AUDIT_CALLBACK_SECRET        ← Shared secret; must match the GitHub Actions secret of the same name
 GITHUB_APP_ID                ← Phase 2, leave empty
 GITHUB_APP_PRIVATE_KEY       ← Phase 2, leave empty
 ```

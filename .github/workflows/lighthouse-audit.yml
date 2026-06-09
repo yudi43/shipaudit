@@ -1,0 +1,59 @@
+name: Lighthouse Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL to audit'
+        required: true
+        type: string
+      callback_url:
+        description: 'URL to POST results to'
+        required: true
+        type: string
+      audit_id:
+        description: 'Unique audit ID for correlation'
+        required: true
+        type: string
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Lighthouse
+        run: npm install -g lighthouse
+
+      - name: Run Lighthouse
+        id: lighthouse
+        run: |
+          lighthouse "${{ github.event.inputs.url }}" \
+            --output=json \
+            --output-path=./lhr.json \
+            --chrome-flags="--headless --no-sandbox --disable-gpu" \
+            --quiet
+
+      - name: Send results to callback
+        if: always()
+        run: |
+          if [ -f ./lhr.json ]; then
+            curl -X POST "${{ github.event.inputs.callback_url }}" \
+              -H "Content-Type: application/json" \
+              -H "x-audit-id: ${{ github.event.inputs.audit_id }}" \
+              -H "x-audit-secret: ${{ secrets.AUDIT_CALLBACK_SECRET }}" \
+              --data-binary @lhr.json \
+              --max-time 30
+          else
+            curl -X POST "${{ github.event.inputs.callback_url }}" \
+              -H "Content-Type: application/json" \
+              -H "x-audit-id: ${{ github.event.inputs.audit_id }}" \
+              -H "x-audit-secret: ${{ secrets.AUDIT_CALLBACK_SECRET }}" \
+              -d '{"error":"Lighthouse failed to produce output"}'
+          fi

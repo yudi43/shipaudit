@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Redis } from '@upstash/redis'
+import { randomUUID } from 'crypto'
 import { normalizeUrl, generateReportId } from '@/lib/utils'
 import { detectFramework } from '@/lib/framework-detect'
 import { parseVitals } from '@/lib/vitals'
@@ -11,7 +12,7 @@ import { analyzeFonts } from '@/lib/font-analyzer'
 import { getPostHogClient } from '@/lib/posthog-server'
 import type { AuditReport, LighthouseResult } from '@/lib/types'
 
-export const maxDuration = 90
+export const maxDuration = 300
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -53,29 +54,61 @@ export async function POST(request: NextRequest) {
   // 4. Detect framework
   const stack = await detectFramework(url)
 
-  // 5. Run Lighthouse worker
-  const workerUrl = process.env.LIGHTHOUSE_WORKER_URL ?? 'http://localhost:3001'
+  // 5. Trigger GitHub Actions Lighthouse run and poll for result
+  const auditId = randomUUID()
+  const host = request.headers.get('host')
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
+  const callbackUrl = `${protocol}://${host}/api/audit/callback`
+
+  const triggerRes = await fetch(
+    `https://api.github.com/repos/${process.env.GITHUB_REPO_OWNER}/${process.env.GITHUB_REPO_NAME}/actions/workflows/lighthouse-audit.yml/dispatches`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ref: 'main',
+        inputs: { url, callback_url: callbackUrl, audit_id: auditId },
+      }),
+    }
+  )
+
+  if (!triggerRes.ok) {
+    const error = await triggerRes.text()
+    console.error('[audit] Failed to trigger GitHub Actions:', error)
+    return NextResponse.json({ error: 'Failed to start audit' }, { status: 502 })
+  }
+
+  // Poll Redis for the LHR result (max 3 minutes)
+  const maxWaitMs = 180_000
+  const pollIntervalMs = 3_000
+  const startTime = Date.now()
+  let lhrData: string | null = null
+
+  while (Date.now() - startTime < maxWaitMs) {
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
+    lhrData = await redis.get<string>(`lhr:${auditId}`)
+    if (lhrData) break
+  }
+
+  if (!lhrData) {
+    return NextResponse.json({ error: 'Audit timed out — please try again' }, { status: 504 })
+  }
+
+  await redis.del(`lhr:${auditId}`)
+
   let lhr: LighthouseResult
   try {
-    const ac = new AbortController()
-    const timeout = setTimeout(() => ac.abort(), 90_000)
-    const workerRes = await fetch(`${workerUrl}/audit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
-      signal: ac.signal,
-    })
-    clearTimeout(timeout)
-
-    if (!workerRes.ok) {
-      const err = await workerRes.text().catch(() => 'Worker error')
-      return NextResponse.json({ error: `Lighthouse worker failed: ${err}` }, { status: 502 })
+    const parsed = typeof lhrData === 'string' ? JSON.parse(lhrData) : lhrData
+    if ((parsed as Record<string, unknown>).error) {
+      return NextResponse.json({ error: (parsed as Record<string, unknown>).error }, { status: 502 })
     }
-
-    lhr = await workerRes.json() as LighthouseResult
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: `Could not reach Lighthouse worker: ${msg}` }, { status: 502 })
+    lhr = parsed as LighthouseResult
+  } catch {
+    return NextResponse.json({ error: 'Invalid Lighthouse result' }, { status: 502 })
   }
 
   // 6–7. Parse vitals + run rule engine
