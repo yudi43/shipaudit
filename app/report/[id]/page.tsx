@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Redis } from '@upstash/redis'
+import type { Metadata } from 'next'
 import type { AuditReport } from '@/lib/types'
 import { ReportFadeIn } from '@/components/report/ReportFadeIn'
 import { StackBadges } from '@/components/report/StackBadges'
@@ -22,11 +23,39 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 })
 
-export default async function ReportPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+type Props = { params: Promise<{ id: string }> }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params
+  const report = await redis.get<AuditReport>(`report:${id}`)
+
+  if (!report) return { title: 'Report Not Found — ShipAudit' }
+
+  const domain = new URL(report.url).hostname
+  const title = `${domain} scored ${report.score.current}/100 — ShipAudit`
+  const snippet = report.executiveSummary ? report.executiveSummary.slice(0, 120) + '…' : ''
+  const description = `${domain} scored ${report.score.current}/100 on ShipAudit's stress test. Achievable: ${report.score.achievable}/100. ${report.findings.length} issues found. ${snippet}`
+  const ogImage = `/api/og/report/${id}`
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: `https://getshipaudit.vercel.app/report/${id}`,
+      images: [{ url: ogImage, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage],
+    },
+  }
+}
+
+export default async function ReportPage({ params }: Props) {
   const { id } = await params
   const report = await redis.get<AuditReport>(`report:${id}`)
   if (!report) notFound()
