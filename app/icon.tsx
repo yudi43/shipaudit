@@ -8,16 +8,25 @@ export default function Icon() {
     (
       <div
         style={{
-          background: '#4f46e5',
-          width: '100%',
-          height: '100%',
+          width: 32,
+          height: 32,
+          background: '#0f172a',
+          borderRadius: 7,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: '6px',
         }}
       >
-        <div style={{ color: '#ffffff', fontSize: '18px', fontWeight: 'bold' }}>S</div>
+        <svg width="24" height="16" viewBox="0 0 24 16">
+          <polyline
+            points="0,8 4,8 7,2 10,14 13,0 16,10 18,8 24,8"
+            fill="none"
+            stroke="#818cf8"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </div>
     ),
     { ...size }

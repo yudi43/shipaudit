@@ -16,83 +16,100 @@ export default function OGImage() {
           alignItems: 'center',
           justifyContent: 'center',
           fontFamily: 'system-ui, sans-serif',
-          padding: '60px',
+          padding: '80px',
         }}
       >
         {/* Logo row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '48px' }}>
           <div
             style={{
-              background: '#4f46e5',
-              borderRadius: '8px',
-              width: '44px',
-              height: '44px',
+              width: 64,
+              height: 64,
+              background: '#1e293b',
+              borderRadius: 14,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <div style={{ color: '#ffffff', fontSize: '18px', fontWeight: 'bold' }}>SA</div>
+            <svg width="44" height="28" viewBox="0 0 24 16">
+              <polyline
+                points="0,8 4,8 7,2 10,14 13,0 16,10 18,8 24,8"
+                fill="none"
+                stroke="#818cf8"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{ color: '#ffffff', fontSize: '32px', fontWeight: 'bold', letterSpacing: '-0.5px' }}>Ship</span>
-            <span style={{ color: '#818cf8', fontSize: '32px', fontWeight: 'bold', letterSpacing: '-0.5px' }}>Audit</span>
+          <div style={{ display: 'flex', fontSize: 36, fontWeight: 700, letterSpacing: '-0.5px' }}>
+            <span style={{ color: '#ffffff' }}>Ship</span>
+            <span style={{ color: '#818cf8' }}>Audit</span>
           </div>
         </div>
 
-        {/* Headline — split into two lines, no <br /> */}
+        {/* Headline */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             marginBottom: '24px',
-            maxWidth: '900px',
           }}
         >
-          <div
+          <span
             style={{
               color: '#ffffff',
-              fontSize: '56px',
-              fontWeight: 'bold',
+              fontSize: 64,
+              fontWeight: 800,
               textAlign: 'center',
               lineHeight: 1.1,
-              letterSpacing: '-1px',
+              letterSpacing: '-2px',
             }}
           >
             Paste any URL.
-          </div>
-          <div
+          </span>
+          <span
             style={{
               color: '#818cf8',
-              fontSize: '56px',
-              fontWeight: 'bold',
+              fontSize: 64,
+              fontWeight: 800,
               textAlign: 'center',
               lineHeight: 1.1,
-              letterSpacing: '-1px',
+              letterSpacing: '-2px',
             }}
           >
             AI-powered audit.
-          </div>
+          </span>
         </div>
 
         {/* Subtext */}
-        <div style={{ color: '#64748b', fontSize: '24px', textAlign: 'center', marginBottom: '48px' }}>
+        <div
+          style={{
+            display: 'flex',
+            color: '#475569',
+            fontSize: 24,
+            textAlign: 'center',
+            marginBottom: '48px',
+          }}
+        >
           Real-world mobile conditions · Framework-specific fixes · Under 90s
         </div>
 
-        {/* Stats row — no emoji */}
+        {/* Stats row */}
         <div style={{ display: 'flex', gap: '16px' }}>
-          {['Under 90s', 'Real-world mobile', 'Framework-aware fixes'].map((stat) => (
+          {['Under 90s', 'Google CWV thresholds', 'Framework-aware fixes'].map((stat) => (
             <div
               key={stat}
               style={{
+                display: 'flex',
                 background: '#1e293b',
                 border: '1px solid #334155',
-                borderRadius: '8px',
+                borderRadius: 8,
                 padding: '10px 20px',
-                color: '#94a3b8',
-                fontSize: '16px',
+                color: '#64748b',
+                fontSize: 16,
               }}
             >
               {stat}

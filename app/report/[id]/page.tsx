@@ -17,6 +17,7 @@ import { ExportButton } from '@/components/report/ExportButton'
 import { WaitlistCTA } from '@/components/report/WaitlistCTA'
 import { ReanalyzeButton } from '@/components/report/ReanalyzeButton'
 import { MeasurementContext } from '@/components/report/MeasurementContext'
+import Logo from '@/components/Logo'
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -74,19 +75,13 @@ export default async function ReportPage({ params }: Props) {
     <div className="min-h-screen bg-[#f8fafc]">
       {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-3">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <Link
-              href="/"
-              className="text-indigo-600 text-sm hover:text-indigo-800 hover:underline transition-colors no-underline w-fit"
-            >
-              ← Analyze another URL
-            </Link>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <p className="text-slate-700 font-mono text-xs truncate max-w-xs">{report.url}</p>
-              <span className="text-slate-300 text-xs">·</span>
-              <p className="text-slate-400 text-xs whitespace-nowrap">Audited {auditedAt}</p>
-            </div>
+        <div className="max-w-2xl mx-auto flex items-center gap-4">
+          <Link href="/" className="flex-shrink-0">
+            <Logo size="sm" theme="light" />
+          </Link>
+          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+            <p className="text-slate-700 font-mono text-xs truncate">{report.url}</p>
+            <p className="text-slate-400 text-xs whitespace-nowrap">Audited {auditedAt}</p>
           </div>
           <ReanalyzeButton url={report.url} />
         </div>

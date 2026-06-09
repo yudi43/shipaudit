@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { AlertCircle, Check, Zap, BarChart2, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import posthog from 'posthog-js'
+import Logo from '@/components/Logo'
 
 const STEPS = [
   'Fetching page structure',
@@ -16,28 +17,6 @@ const STEPS = [
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// ── Geometric logo mark — two offset bars ────────────────────────────────────
-function LogoMark({ muted }: { muted?: boolean }) {
-  const fill = muted ? '#334155' : '#818cf8'
-  return (
-    <svg width="18" height="13" viewBox="0 0 18 13" fill="none" aria-hidden>
-      <rect x="0" y="0" width="18" height="3.5" rx="1" fill={fill} />
-      <rect x="5" y="9.5" width="13" height="3.5" rx="1" fill={fill} />
-    </svg>
-  )
-}
-
-function Wordmark({ muted }: { muted?: boolean }) {
-  return (
-    <div className="flex items-center gap-2">
-      <LogoMark muted={muted} />
-      <span className="text-lg font-bold tracking-tight">
-        <span className={muted ? 'text-slate-700' : 'text-white'}>Ship</span>
-        <span className={muted ? 'text-slate-700' : 'text-indigo-400'}>Audit</span>
-      </span>
-    </div>
-  )
-}
 
 export default function Home() {
   const router = useRouter()
@@ -171,7 +150,7 @@ export default function Home() {
 
       {/* Header */}
       <header className="relative z-10 w-full max-w-6xl mx-auto px-6 pt-5 flex items-center justify-between">
-        <Wordmark />
+        <Logo size="md" theme="dark" />
         <div
           className="px-3 py-1 rounded-full text-xs font-medium text-indigo-400 border border-indigo-500/30"
           style={{ background: 'rgba(79,70,229,0.1)' }}
@@ -282,7 +261,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="relative z-10 w-full border-t border-zinc-900 pb-8 pt-6 px-6">
         <div className="max-w-6xl mx-auto flex flex-col items-center gap-1.5">
-          <Wordmark muted />
+          <Logo size="sm" theme="light" />
           <p className="text-slate-700 text-xs">AI-powered performance analysis. No account required.</p>
         </div>
       </footer>
@@ -465,7 +444,7 @@ function LoadingOverlay({ url, currentStep }: { url: string; currentStep: number
       transition={{ duration: 0.3 }}
       className="fixed inset-0 z-50 bg-[#0f172a] flex flex-col items-center justify-center px-6 min-h-screen"
     >
-      <Wordmark />
+      <Logo size="md" theme="dark" />
 
       <div className="flex flex-col items-center mt-8">
         <p className="text-slate-400 text-xs font-mono tracking-widest uppercase">AUDITING</p>
