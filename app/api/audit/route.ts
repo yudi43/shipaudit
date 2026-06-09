@@ -5,6 +5,9 @@ import { detectFramework } from '@/lib/framework-detect'
 import { parseVitals } from '@/lib/vitals'
 import { runRuleEngine } from '@/lib/rule-engine'
 import { generateExecutiveSummary, generateCursorPrompt } from '@/lib/summarize'
+import { analyzeThirdParties } from '@/lib/third-party-analyzer'
+import { analyzeImages } from '@/lib/image-analyzer'
+import { analyzeFonts } from '@/lib/font-analyzer'
 import type { AuditReport, LighthouseResult } from '@/lib/types'
 
 export const maxDuration = 90
@@ -78,7 +81,12 @@ export async function POST(request: NextRequest) {
   const vitals = parseVitals(lhr)
   const { score, findings } = runRuleEngine(lhr, stack.framework)
 
-  // 8. Generate Claude prose in parallel
+  // 8. Run diagnostic modules (deterministic, no AI)
+  const thirdParty = analyzeThirdParties(lhr)
+  const images = analyzeImages(lhr)
+  const fonts = analyzeFonts(lhr)
+
+  // 9. Generate AI prose in parallel
   const [executiveSummary, cursorPrompt] = await Promise.all([
     generateExecutiveSummary({
       url,
@@ -87,11 +95,14 @@ export async function POST(request: NextRequest) {
       topFindings: score.topOpportunities,
       currentScore: score.current,
       achievableScore: score.achievable,
+      thirdParty,
+      images,
+      fonts,
     }),
-    generateCursorPrompt({ url, stack, findings }),
+    generateCursorPrompt({ url, stack, findings, thirdParty, images, fonts }),
   ])
 
-  // 9. Assemble report
+  // 10. Assemble report
   const report: AuditReport = {
     id: reportId,
     url,
@@ -102,11 +113,14 @@ export async function POST(request: NextRequest) {
     findings,
     executiveSummary,
     cursorPrompt,
+    thirdParty,
+    images,
+    fonts,
   }
 
-  // 10. Cache for 1 hour
+  // 11. Cache for 1 hour
   await redis.set(cacheKey, report, { ex: 3600 })
 
-  // 11. Return
+  // 12. Return
   return NextResponse.json({ reportId })
 }

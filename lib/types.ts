@@ -66,6 +66,70 @@ export interface ShipAuditScore {
   }
 }
 
+// ── Third-party services ──────────────────────────────────────────────────────
+
+export interface ThirdPartyService {
+  name: string
+  domain: string
+  blockingTimeMs: number
+  transferSizeKb: number
+  requestCount: number
+  category: 'analytics' | 'advertising' | 'social' | 'chat' | 'cdn' | 'other'
+}
+
+export interface ThirdPartyAudit {
+  services: ThirdPartyService[]
+  totalBlockingTimeMs: number
+  totalTransferSizeKb: number
+  worstOffender: ThirdPartyService | null
+}
+
+// ── Image audit ───────────────────────────────────────────────────────────────
+
+export interface ImageIssue {
+  url: string
+  filename: string
+  currentSizeKb: number
+  wastedSizeKb: number
+  naturalWidth?: number
+  naturalHeight?: number
+  renderedWidth?: number
+  renderedHeight?: number
+  format: string
+  issues: string[]
+  estimatedLcpImpactMs?: number
+}
+
+export interface ImageAudit {
+  issues: ImageIssue[]
+  totalWastedKb: number
+  totalImages: number
+  imagesWithIssues: number
+}
+
+// ── Font audit ────────────────────────────────────────────────────────────────
+
+export interface FontIssue {
+  url: string
+  family: string
+  format: string
+  sizeKb: number
+  hasFontDisplay: boolean
+  fontDisplayValue?: string
+  isRenderBlocking: boolean
+  source: 'google-fonts' | 'typekit' | 'self-hosted' | 'other'
+}
+
+export interface FontAudit {
+  issues: FontIssue[]
+  renderBlockingCount: number
+  missingFontDisplayCount: number
+  totalFontSizeKb: number
+  googleFontsCount: number
+}
+
+// ── Core report ───────────────────────────────────────────────────────────────
+
 export interface AuditReport {
   id: string
   url: string
@@ -76,6 +140,10 @@ export interface AuditReport {
   findings: Finding[]
   executiveSummary: string
   cursorPrompt: string
+  // Optional so cached reports without these fields still render
+  thirdParty?: ThirdPartyAudit
+  images?: ImageAudit
+  fonts?: FontAudit
 }
 
 export interface AuditRequest {
@@ -93,6 +161,10 @@ export interface LighthouseAudit {
   score: number | null
   numericValue?: number
   displayValue?: string
+  details?: {
+    type?: string
+    items?: Record<string, unknown>[]
+  }
 }
 
 export interface LighthouseResult {

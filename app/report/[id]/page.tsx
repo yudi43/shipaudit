@@ -7,6 +7,9 @@ import { StackBadges } from '@/components/report/StackBadges'
 import { ScoreCard } from '@/components/report/ScoreCard'
 import { ExecutiveSummary } from '@/components/report/ExecutiveSummary'
 import { VitalsGrid } from '@/components/report/VitalsGrid'
+import { ThirdPartyAudit } from '@/components/report/ThirdPartyAudit'
+import { ImageAudit } from '@/components/report/ImageAudit'
+import { FontAudit } from '@/components/report/FontAudit'
 import { FindingsList } from '@/components/report/FindingsList'
 import { CursorPromptButton } from '@/components/report/CursorPromptButton'
 import { ExportButton } from '@/components/report/ExportButton'
@@ -82,6 +85,24 @@ export default async function ReportPage({
             {report.vitals.length > 0 && (
               <section className="py-8">
                 <VitalsGrid vitals={report.vitals} />
+              </section>
+            )}
+
+            {report.thirdParty && report.thirdParty.services.length > 0 && (
+              <section className="py-8">
+                <ThirdPartyAudit data={report.thirdParty} />
+              </section>
+            )}
+
+            {report.images && report.images.totalWastedKb >= 50 && (
+              <section className="py-8">
+                <ImageAudit data={report.images} />
+              </section>
+            )}
+
+            {report.fonts && (
+              <section className="py-8">
+                <FontAudit data={report.fonts} />
               </section>
             )}
 
