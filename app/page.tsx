@@ -79,22 +79,73 @@ export default function Home() {
     setAnalyzingUrl(trimmed)
     startProgress()
     posthog.capture('audit_submitted', { url: trimmed })
+
+    function handleError(message: string) {
+      clearTimers()
+      setIsLoading(false)
+      setCurrentStep(-1)
+      setError(message)
+      posthog.capture('audit_failed', { url: trimmed, error: message })
+    }
+
     try {
-      const res = await fetch('/api/audit', {
+      // Step 1: trigger the audit (completes in <3s)
+      const triggerRes = await fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: trimmed }),
       })
-      const data: { reportId?: string; error?: string } = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error ?? 'Audit failed. Please try again.')
-      router.push(`/report/${data.reportId}`)
+      const triggerData: { auditId?: string; reportId?: string; status?: string; error?: string } =
+        await triggerRes.json().catch(() => ({}))
+
+      if (!triggerRes.ok) {
+        handleError(triggerData.error ?? 'Failed to start audit. Please try again.')
+        return
+      }
+
+      // Cache hit — skip straight to report
+      if (triggerData.status === 'complete') {
+        router.push(`/report/${triggerData.reportId}`)
+        return
+      }
+
+      const { auditId } = triggerData
+      const maxAttempts = 60  // 60 × 3s = 3 min max
+      let attempts = 0
+
+      // Step 2: poll /api/audit/status/:auditId every 3s
+      const poll = async () => {
+        if (attempts >= maxAttempts) {
+          handleError('Audit timed out. Please try again.')
+          return
+        }
+        attempts++
+
+        try {
+          const statusRes = await fetch(`/api/audit/status/${auditId}`)
+          const data: { status: string; reportId?: string; message?: string } = await statusRes.json()
+
+          if (data.status === 'complete') {
+            router.push(`/report/${data.reportId}`)
+            return
+          }
+
+          if (data.status === 'error') {
+            handleError(data.message ?? 'Audit failed. Please try again.')
+            return
+          }
+
+          // Still pending — check again in 3s
+          setTimeout(poll, 3000)
+        } catch {
+          setTimeout(poll, 3000)
+        }
+      }
+
+      // Give GitHub Actions 15s to spin up before first poll
+      setTimeout(poll, 15000)
     } catch (err) {
-      clearTimers()
-      setIsLoading(false)
-      setCurrentStep(-1)
-      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
-      setError(message)
-      posthog.capture('audit_failed', { url: trimmed, error: message })
+      handleError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
     }
   }
 
