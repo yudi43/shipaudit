@@ -19,7 +19,7 @@ export function CursorPromptButton({ cursorPrompt }: { cursorPrompt: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-slate-400 text-xs font-mono uppercase tracking-widest">AI Fix Prompt</p>
+      <p className="text-slate-400 text-[11px] font-mono uppercase tracking-widest">AI FIX PROMPT</p>
       <div className="bg-slate-50 rounded-lg px-3 py-2.5 border border-slate-200">
         <p className="text-slate-500 text-xs font-mono leading-relaxed line-clamp-2">{preview}</p>
       </div>
@@ -28,8 +28,8 @@ export function CursorPromptButton({ cursorPrompt }: { cursorPrompt: string }) {
         className={cn(
           'w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-sm transition-colors',
           copied
-            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-            : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+            ? 'bg-emerald-600 text-white'
+            : 'bg-indigo-600 hover:bg-indigo-700 text-white'
         )}
       >
         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}

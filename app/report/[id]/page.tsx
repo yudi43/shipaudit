@@ -38,26 +38,29 @@ export default async function ReportPage({
     report.stack.hasTailwind
 
   return (
-    <div className="min-h-screen bg-white">
-      <ReportFadeIn>
-        <div className="max-w-2xl mx-auto px-6 py-10">
-
-          {/* Header */}
-          <div className="flex items-start justify-between gap-4 mb-10 pb-6 border-b border-slate-200">
-            <div className="flex flex-col gap-1">
-              <Link
-                href="/"
-                className="text-indigo-600 text-sm hover:text-indigo-500 transition-colors"
-              >
-                ← Analyze another URL
-              </Link>
-              <p className="text-slate-700 text-sm font-mono break-all">{report.url}</p>
-              <p className="text-slate-400 text-xs">Audited {auditedAt}</p>
+    <div className="min-h-screen bg-[#f8fafc]">
+      {/* Sticky header */}
+      <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-3">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <Link
+              href="/"
+              className="text-indigo-600 text-sm hover:text-indigo-800 hover:underline transition-colors no-underline w-fit"
+            >
+              ← Analyze another URL
+            </Link>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-slate-700 font-mono text-xs truncate max-w-xs">{report.url}</p>
+              <span className="text-slate-300 text-xs">·</span>
+              <p className="text-slate-400 text-xs whitespace-nowrap">Audited {auditedAt}</p>
             </div>
-            <ReanalyzeButton url={report.url} />
           </div>
+          <ReanalyzeButton url={report.url} />
+        </div>
+      </header>
 
-          {/* Sections */}
+      <ReportFadeIn>
+        <div className="max-w-2xl mx-auto px-6 py-8">
           <div className="flex flex-col divide-y divide-slate-200">
 
             {hasStack && (

@@ -40,9 +40,9 @@ export function WaitlistCTA({ findingCount }: { findingCount: number }) {
       </div>
 
       {status === 'success' ? (
-        <div className="flex items-center gap-2 text-indigo-600 text-sm font-medium">
+        <div className="flex items-center gap-1.5 text-emerald-600 text-sm font-medium">
           <Check className="w-4 h-4" />
-          ✓ You&apos;re on the list.
+          You&apos;re on the list.
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">

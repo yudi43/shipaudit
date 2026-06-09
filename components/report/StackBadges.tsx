@@ -13,7 +13,7 @@ export function StackBadges({ stack }: { stack: DetectedStack }) {
       {badges.map((label) => (
         <span
           key={label}
-          className="px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-mono"
+          className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-medium"
         >
           {label}
         </span>

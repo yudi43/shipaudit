@@ -20,7 +20,7 @@ export function VitalsGrid({ vitals }: { vitals: WebVital[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-slate-400 text-xs font-mono uppercase tracking-widest">Core Web Vitals</p>
+      <p className="text-slate-400 text-[11px] font-mono uppercase tracking-widest">CORE WEB VITALS</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         {vitals.map((v) => {
           const s = STATUS_STYLE[v.status]

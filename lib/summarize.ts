@@ -1,5 +1,6 @@
 import Groq from 'groq-sdk'
 import type { DetectedStack, Finding, WebVital } from './types'
+import { formatVitalValue } from './utils'
 
 const client = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
@@ -33,7 +34,7 @@ export async function generateExecutiveSummary({
   achievableScore: number
 }): Promise<string> {
   const vitalLines = vitals
-    .map((v) => `${v.metric}: ${v.value}${v.unit} (${v.status})`)
+    .map((v) => `${v.metric}: ${formatVitalValue(v.value, v.unit)} (${v.status})`)
     .join(', ')
   const findingLines = topFindings
     .map((f) => `- ${f.title} (+${f.estimatedPointImpact} pts)`)

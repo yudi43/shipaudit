@@ -13,7 +13,7 @@ const STEPS = [
   'Writing AI fix instructions',
 ]
 
-const STEP_DELAYS_MS = [0, 3000, 11000, 16000]
+const STEP_DELAYS_MS = [0, 3000, 18000, 22000]
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // ── Geometric logo mark — two offset bars ────────────────────────────────────
@@ -407,44 +407,43 @@ function LoadingOverlay({ url, currentStep }: { url: string; currentStep: number
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-50 bg-zinc-950 flex items-center justify-center px-6"
+      className="fixed inset-0 z-50 bg-[#0f172a] flex flex-col items-center justify-center px-6"
     >
-      <div className="w-full max-w-sm flex flex-col items-center gap-9">
-        <motion.div
-          animate={{ opacity: [0.6, 1, 0.6] }}
-          transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <Wordmark />
-        </motion.div>
+      <div className="w-full max-w-sm flex flex-col items-center">
+        <Wordmark />
 
-        <div className="text-center space-y-1">
-          <p className="text-zinc-600 text-xs uppercase tracking-widest">Auditing</p>
-          <p className="text-zinc-500 font-mono text-xs break-all max-w-xs leading-relaxed">{url}</p>
+        <div className="flex flex-col items-center mt-8">
+          <p className="text-slate-500 text-xs font-mono tracking-widest uppercase">AUDITING</p>
+          <p className="text-slate-300 font-mono text-sm mt-1 break-all max-w-xs text-center leading-relaxed">{url}</p>
         </div>
 
-        <div className="w-full flex flex-col">
+        <div className="w-full flex flex-col mt-12">
           {STEPS.map((step, i) => {
             const isDone = i < currentStep
             const isActive = i === currentStep
             return (
               <div
                 key={step}
-                className="flex items-center gap-3 py-2.5 pl-4 border-l-2 transition-colors duration-500"
-                style={{ borderLeftColor: isDone ? '#34d399' : isActive ? '#6366f1' : 'transparent' }}
+                className={cn(
+                  'flex items-center gap-3 py-2.5 transition-all duration-500',
+                  isActive ? 'border-l-2 border-indigo-500 pl-3' : 'pl-[calc(0.75rem+2px)]'
+                )}
               >
                 <div className="w-4 text-center shrink-0">
-                  {isDone ? <span className="text-emerald-400 text-sm">✓</span>
-                    : isActive ? (
-                      <motion.span
-                        animate={{ opacity: [1, 0.3, 1] }}
-                        transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
-                        className="text-indigo-400 text-sm block"
-                      >✦</motion.span>
-                    ) : <span className="text-zinc-700 text-sm">·</span>
-                  }
+                  {isDone ? (
+                    <span className="text-emerald-400 text-sm">✓</span>
+                  ) : isActive ? (
+                    <motion.span
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+                      className="text-indigo-400 text-sm block"
+                    >✦</motion.span>
+                  ) : (
+                    <span className="text-slate-700 text-sm">·</span>
+                  )}
                 </div>
                 <span className={cn('text-sm transition-colors duration-300',
-                  isDone ? 'text-zinc-500' : isActive ? 'text-indigo-400' : 'text-zinc-700'
+                  isDone ? 'text-slate-400' : isActive ? 'text-indigo-400 font-medium' : 'text-slate-700'
                 )}>
                   {step}
                 </span>
@@ -453,7 +452,7 @@ function LoadingOverlay({ url, currentStep }: { url: string; currentStep: number
           })}
         </div>
 
-        <p className="text-zinc-600 text-xs">Usually takes 20–40 seconds</p>
+        <p className="text-slate-700 text-xs mt-12">Usually takes 20–40 seconds</p>
       </div>
     </motion.div>
   )
