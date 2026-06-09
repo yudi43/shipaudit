@@ -1,6 +1,7 @@
 import express from 'express'
 import lighthouse from 'lighthouse'
-import * as chromeLauncher from 'chrome-launcher'
+import puppeteer from 'puppeteer-core'
+import chromium from '@sparticuz/chromium'
 
 const app = express()
 app.use(express.json())
@@ -19,20 +20,37 @@ app.post('/audit', async (req, res) => {
     return
   }
 
-  let chrome: chromeLauncher.LaunchedChrome | undefined
+  let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined
 
   try {
-    chrome = await chromeLauncher.launch({
-      chromeFlags: [
-        '--headless',
+    // PUPPETEER_EXECUTABLE_PATH is set by the Docker image (Chrome baked in).
+    // Fall back to @sparticuz/chromium for serverless / non-Docker environments.
+    const executablePath =
+      process.env.PUPPETEER_EXECUTABLE_PATH ??
+      await chromium.executablePath(process.env.CHROMIUM_EXECUTABLE_PATH ?? undefined)
+
+    browser = await puppeteer.launch({
+      args: [
+        ...chromium.args,
         '--no-sandbox',
-        '--disable-gpu',
+        '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
       ],
+      defaultViewport: chromium.defaultViewport,
+      executablePath,
+      headless: true,
+      ignoreHTTPSErrors: true,
     })
 
+    const wsEndpoint = browser.wsEndpoint()
+    const port = Number(new URL(wsEndpoint).port)
+
     const result = await lighthouse(url, {
-      port: chrome.port,
+      port,
       output: 'json',
       logLevel: 'error',
       onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
@@ -49,7 +67,7 @@ app.post('/audit', async (req, res) => {
     console.error('[lighthouse-worker] audit failed:', message)
     res.status(500).json({ error: message })
   } finally {
-    await chrome?.kill()
+    await browser?.close()
   }
 })
 
