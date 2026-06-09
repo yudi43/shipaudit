@@ -33,12 +33,13 @@ jobs:
 
       - name: Run Lighthouse
         id: lighthouse
+        continue-on-error: true
         run: |
           lighthouse "${{ github.event.inputs.url }}" \
             --output=json \
             --output-path=./lhr.json \
             --chrome-flags="--headless --no-sandbox --disable-gpu" \
-            --quiet
+            --quiet || echo "Lighthouse exited with error"
 
       - name: Send results to callback
         if: always()
