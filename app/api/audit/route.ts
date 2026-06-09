@@ -8,6 +8,7 @@ import { generateExecutiveSummary, generateCursorPrompt } from '@/lib/summarize'
 import { analyzeThirdParties } from '@/lib/third-party-analyzer'
 import { analyzeImages } from '@/lib/image-analyzer'
 import { analyzeFonts } from '@/lib/font-analyzer'
+import { getPostHogClient } from '@/lib/posthog-server'
 import type { AuditReport, LighthouseResult } from '@/lib/types'
 
 export const maxDuration = 90
@@ -121,6 +122,24 @@ export async function POST(request: NextRequest) {
   // 11. Cache for 1 hour
   await redis.set(cacheKey, report, { ex: 3600 })
 
-  // 12. Return
+  // 12. Track completion
+  const posthog = getPostHogClient()
+  posthog.capture({
+    distinctId: url,
+    event: 'audit_completed',
+    properties: {
+      url,
+      report_id: reportId,
+      framework: stack.framework,
+      deploy_platform: stack.deployPlatform,
+      score: score.current,
+      achievable_score: score.achievable,
+      findings_count: findings.length,
+      is_refresh: refresh,
+    },
+  })
+  await posthog.shutdown()
+
+  // 13. Return
   return NextResponse.json({ reportId })
 }

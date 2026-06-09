@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AlertCircle, Check, Zap, BarChart2, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import posthog from 'posthog-js'
 
 const STEPS = [
   'Fetching page structure',
@@ -77,6 +78,7 @@ export default function Home() {
     setIsLoading(true)
     setAnalyzingUrl(trimmed)
     startProgress()
+    posthog.capture('audit_submitted', { url: trimmed })
     try {
       const res = await fetch('/api/audit', {
         method: 'POST',
@@ -90,7 +92,9 @@ export default function Home() {
       clearTimers()
       setIsLoading(false)
       setCurrentStep(-1)
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      setError(message)
+      posthog.capture('audit_failed', { url: trimmed, error: message })
     }
   }
 
@@ -98,6 +102,8 @@ export default function Home() {
     e.preventDefault()
     if (!EMAIL_RE.test(waitlistEmail) || waitlistStatus === 'loading') return
     setWaitlistStatus('loading')
+    posthog.capture('waitlist_signup_submitted', { source: 'homepage' })
+    posthog.identify(waitlistEmail, { email: waitlistEmail })
     try {
       const res = await fetch('/api/waitlist', {
         method: 'POST',

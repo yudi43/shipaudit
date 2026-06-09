@@ -43,3 +43,4 @@ next-env.d.ts
 
 /lighthouse-worker/node_modules
 /lighthouse-worker/dist
+.env.local

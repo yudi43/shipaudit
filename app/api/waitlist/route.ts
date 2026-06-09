@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -41,6 +42,15 @@ export async function POST(request: NextRequest) {
     console.error('Resend error:', err)
     // Still return success to the user — their email is recorded in the log
   }
+
+  const posthog = getPostHogClient()
+  posthog.capture({
+    distinctId: email,
+    event: 'waitlist_signup_completed',
+    properties: { email },
+  })
+  posthog.identify({ distinctId: email, properties: { email } })
+  await posthog.shutdown()
 
   return NextResponse.json({ ok: true })
 }

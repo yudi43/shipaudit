@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import posthog from 'posthog-js'
 
 export function ReanalyzeButton({ url }: { url: string }) {
   const router = useRouter()
@@ -12,6 +13,7 @@ export function ReanalyzeButton({ url }: { url: string }) {
   async function handle() {
     if (loading) return
     setLoading(true)
+    posthog.capture('report_reanalyzed', { url })
     try {
       await fetch('/api/audit', {
         method: 'POST',

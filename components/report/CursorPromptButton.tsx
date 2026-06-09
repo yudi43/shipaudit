@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import posthog from 'posthog-js'
 
 export function CursorPromptButton({ cursorPrompt }: { cursorPrompt: string }) {
   const [copied, setCopied] = useState(false)
@@ -10,7 +11,7 @@ export function CursorPromptButton({ cursorPrompt }: { cursorPrompt: string }) {
   async function handleCopy() {
     if (copied) return
     await navigator.clipboard.writeText(cursorPrompt)
-    console.log('cursor_prompt_copied')
+    posthog.capture('cursor_prompt_copied', { prompt_length: cursorPrompt.length })
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

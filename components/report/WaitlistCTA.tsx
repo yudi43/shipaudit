@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Check } from 'lucide-react'
+import posthog from 'posthog-js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -14,6 +15,8 @@ export function WaitlistCTA({ findingCount }: { findingCount: number }) {
     if (!EMAIL_RE.test(email) || status === 'loading') return
 
     setStatus('loading')
+    posthog.capture('waitlist_signup_submitted', { source: 'report_page', finding_count: findingCount })
+    posthog.identify(email, { email })
     try {
       const res = await fetch('/api/waitlist', {
         method: 'POST',

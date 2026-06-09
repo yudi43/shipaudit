@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { ChevronDown, GitBranch, Download, Layout } from 'lucide-react'
 import type { AuditReport } from '@/lib/types'
+import posthog from 'posthog-js'
 
 function buildMarkdown(report: AuditReport): string {
   const vitalsTable = [
@@ -54,6 +55,7 @@ export function ExportButton({ report }: { report: AuditReport }) {
 
   async function copyToClipboard(label: string) {
     await navigator.clipboard.writeText(buildMarkdown(report))
+    posthog.capture('report_exported', { format: label, report_id: report.id })
     setCopied(label)
     setOpen(false)
     setTimeout(() => setCopied(null), 2000)
@@ -67,6 +69,7 @@ export function ExportButton({ report }: { report: AuditReport }) {
     a.download = `shipaudit-${report.id}.md`
     a.click()
     URL.revokeObjectURL(url)
+    posthog.capture('report_exported', { format: 'Download Markdown', report_id: report.id })
     setOpen(false)
   }
 
