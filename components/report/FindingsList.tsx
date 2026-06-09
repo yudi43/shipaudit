@@ -13,7 +13,7 @@ function FindingRow({ finding, rank, isLast }: { finding: Finding; rank: number;
     <div className={cn(
       'transition-colors',
       !isLast && 'border-b border-slate-100',
-      isTop3 && 'border-l-2 border-l-indigo-300 bg-indigo-50/30',
+      isTop3 && 'border-l-2 border-l-indigo-200 bg-indigo-50/30',
     )}>
       <button
         onClick={() => setOpen((v) => !v)}
@@ -22,7 +22,7 @@ function FindingRow({ finding, rank, isLast }: { finding: Finding; rank: number;
         <span className="text-slate-300 font-mono text-xs w-5 shrink-0 text-right tabular-nums">{rank}</span>
         <span className="flex-1 text-slate-800 text-sm font-medium">{finding.title}</span>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="bg-indigo-50 text-indigo-600 text-xs font-mono rounded px-2 py-0.5">
+          <span className="bg-indigo-50 text-indigo-700 text-xs font-mono rounded px-2 py-0.5">
             +{finding.estimatedPointImpact} pts
           </span>
           <ChevronDown

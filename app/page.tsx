@@ -17,22 +17,23 @@ const STEP_DELAYS_MS = [0, 3000, 18000, 22000]
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // ── Geometric logo mark — two offset bars ────────────────────────────────────
-function LogoMark() {
+function LogoMark({ muted }: { muted?: boolean }) {
+  const fill = muted ? '#334155' : '#818cf8'
   return (
     <svg width="18" height="13" viewBox="0 0 18 13" fill="none" aria-hidden>
-      <rect x="0" y="0" width="18" height="3.5" rx="1" fill="#818cf8" />
-      <rect x="5" y="9.5" width="13" height="3.5" rx="1" fill="#818cf8" />
+      <rect x="0" y="0" width="18" height="3.5" rx="1" fill={fill} />
+      <rect x="5" y="9.5" width="13" height="3.5" rx="1" fill={fill} />
     </svg>
   )
 }
 
-function Wordmark() {
+function Wordmark({ muted }: { muted?: boolean }) {
   return (
     <div className="flex items-center gap-2">
-      <LogoMark />
+      <LogoMark muted={muted} />
       <span className="text-lg font-bold tracking-tight">
-        <span className="text-zinc-100">Ship</span>
-        <span className="text-indigo-400">Audit</span>
+        <span className={muted ? 'text-slate-700' : 'text-white'}>Ship</span>
+        <span className={muted ? 'text-slate-700' : 'text-indigo-400'}>Audit</span>
       </span>
     </div>
   )
@@ -119,7 +120,7 @@ export default function Home() {
         <Wordmark />
         <div
           className="px-3 py-1 rounded-full text-xs font-medium text-indigo-400 border border-indigo-500/30"
-          style={{ background: 'rgba(99,102,241,0.1)' }}
+          style={{ background: 'rgba(79,70,229,0.1)' }}
         >
           AI-Powered · Free
         </div>
@@ -134,7 +135,7 @@ export default function Home() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
-            className="inline-flex items-center px-3 py-1 rounded-full border border-indigo-500/30 text-indigo-400 text-xs font-medium"
+            className="inline-flex items-center px-3 py-1 rounded-full border border-indigo-500/20 text-indigo-400 text-xs font-medium"
             style={{ background: 'rgba(99,102,241,0.08)', boxShadow: '0 0 12px rgba(99,102,241,0.18)' }}
           >
             ✦ AI Performance Auditor
@@ -145,7 +146,7 @@ export default function Home() {
             <HLine delay={0.06}>Paste any URL.</HLine>
             <HLine delay={0.14} indigo>AI-powered audit.</HLine>
             <HLine delay={0.22}>Human-readable fixes.</HLine>
-            <HLine delay={0.30}>30 seconds.</HLine>
+            <HLine delay={0.30} extrabold>30 seconds.</HLine>
           </h1>
 
           {/* Subtext */}
@@ -153,7 +154,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.45, duration: 0.5 }}
-            className="text-zinc-400 text-sm max-w-xs leading-relaxed"
+            className="text-slate-400 text-sm max-w-xs leading-relaxed"
           >
             No account. No setup. Instant AI analysis with framework-specific fix instructions.
           </motion.p>
@@ -201,7 +202,7 @@ export default function Home() {
             {['⚡ 22s average', '✓ Google CWV thresholds', '⚙ Framework-aware fixes'].map((label) => (
               <span
                 key={label}
-                className="px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-500 text-xs"
+                className="px-2.5 py-1 rounded-full bg-[#0f172a] border border-[#1e293b] text-slate-500 text-xs"
               >
                 {label}
               </span>
@@ -228,8 +229,8 @@ export default function Home() {
       {/* Footer */}
       <footer className="relative z-10 w-full border-t border-zinc-900 pb-8 pt-6 px-6">
         <div className="max-w-6xl mx-auto flex flex-col items-center gap-1.5">
-          <Wordmark />
-          <p className="text-zinc-700 text-xs">AI-powered performance analysis. No account required.</p>
+          <Wordmark muted />
+          <p className="text-slate-700 text-xs">AI-powered performance analysis. No account required.</p>
         </div>
       </footer>
 
@@ -240,13 +241,13 @@ export default function Home() {
   )
 }
 
-function HLine({ children, delay, indigo }: { children: string; delay: number; indigo?: boolean }) {
+function HLine({ children, delay, indigo, extrabold }: { children: string; delay: number; indigo?: boolean; extrabold?: boolean }) {
   return (
     <motion.span
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-      className={cn('block', indigo ? 'text-indigo-400' : 'text-white')}
+      className={cn('block', indigo ? 'text-indigo-400' : 'text-white', extrabold && 'font-extrabold')}
     >
       {children}
     </motion.span>
@@ -284,8 +285,8 @@ function PillInput({
   const [focused, setFocused] = useState(false)
   return (
     <div
-      className="flex w-full rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-900 transition-shadow duration-150"
-      style={{ boxShadow: focused ? '0 0 0 2px rgba(99,102,241,0.4)' : undefined }}
+      className="flex w-full rounded-2xl overflow-hidden border border-[#1e293b] bg-[#0f172a] transition-shadow duration-150"
+      style={{ boxShadow: focused ? '0 0 0 2px rgba(79,70,229,0.4)' : undefined }}
     >
       <input
         ref={inputRef}
@@ -299,14 +300,14 @@ function PillInput({
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         disabled={disabled}
-        className="flex-[3] h-12 px-5 bg-transparent text-zinc-100 placeholder-zinc-500 outline-none text-base font-mono disabled:opacity-40 min-w-0"
+        className="flex-[3] h-12 px-5 bg-transparent text-slate-100 placeholder-[#475569] outline-none text-base font-mono disabled:opacity-40 min-w-0"
       />
       <button
         type="submit"
         disabled={disabled || !value.trim()}
         className={cn(
           'flex-[1] h-12 px-5 font-medium text-sm flex items-center justify-center whitespace-nowrap select-none transition-colors bg-indigo-600 text-white',
-          !disabled && value.trim() ? 'hover:bg-indigo-500 cursor-pointer' : 'opacity-50 cursor-not-allowed'
+          !disabled && value.trim() ? 'hover:bg-[#4338ca] cursor-pointer' : 'opacity-40 cursor-not-allowed'
         )}
       >
         {loading
@@ -334,27 +335,28 @@ function GuardCard({
 
   return (
     <div
-      className="rounded-2xl bg-zinc-900 grid grid-cols-1 md:grid-cols-2 overflow-hidden"
+      className="rounded-2xl grid grid-cols-1 md:grid-cols-2 overflow-hidden"
       style={{
-        border: '1px solid rgb(39,39,42)',
-        borderTopColor: '#6366f1',
+        background: '#0f172a',
+        border: '1px solid #1e293b',
+        borderTopColor: '#4f46e5',
         borderTopWidth: '3px',
-        boxShadow: '0 0 40px rgba(99,102,241,0.08)',
+        boxShadow: '0 0 40px rgba(79,70,229,0.08)',
       }}
     >
-      <div className="flex flex-col gap-5 p-7 md:border-r border-zinc-800">
+      <div className="flex flex-col gap-5 p-7 md:border-r border-[#1e293b]">
         <div className="flex flex-col gap-1">
           <span className="text-indigo-400 text-xs font-mono tracking-widest uppercase">Coming Soon</span>
           <h2 className="text-white text-xl font-bold tracking-tight">ShipAudit Guard</h2>
-          <p className="text-zinc-400 text-sm leading-relaxed mt-1">
+          <p className="text-[#64748b] text-sm leading-relaxed mt-1">
             Automatic performance analysis after every deployment. Get notified the moment a deploy
             degrades your Core Web Vitals — with an AI root cause and a fix prompt.
           </p>
         </div>
         <div className="flex flex-col gap-2">
           {features.map(({ icon, text }) => (
-            <div key={text} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-zinc-800 text-zinc-300 text-sm border border-zinc-700/50">
-              <span className="text-zinc-500">{icon}</span>
+            <div key={text} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm border border-[#1e293b]" style={{ background: '#1e293b', color: '#94a3b8' }}>
+              <span style={{ color: '#818cf8' }}>{icon}</span>
               {text}
             </div>
           ))}
@@ -364,8 +366,8 @@ function GuardCard({
       <div className="flex items-start p-7">
         <div className="w-full flex flex-col gap-4">
           <div className="flex flex-col gap-0.5">
-            <p className="text-zinc-300 text-sm font-medium">Join the early access list</p>
-            <p className="text-zinc-500 text-xs">Be first when ShipAudit Guard launches.</p>
+            <p className="text-slate-200 text-sm font-medium">Join the early access list</p>
+            <p className="text-[#64748b] text-xs">Be first when ShipAudit Guard launches.</p>
           </div>
           {status === 'success' ? (
             <div className="flex items-center gap-2 text-emerald-400 font-medium text-sm py-1">
@@ -379,12 +381,13 @@ function GuardCard({
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-10 px-3 rounded-lg bg-zinc-800 border border-zinc-700 focus:border-indigo-500 focus:outline-none text-zinc-100 placeholder-zinc-600 text-sm transition-colors"
+                className="w-full h-10 px-3 rounded-lg border focus:border-indigo-500 focus:outline-none text-sm transition-colors placeholder-[#475569]"
+                style={{ background: '#0f172a', borderColor: '#334155', color: '#f1f5f9' }}
               />
               <button
                 type="submit"
                 disabled={status === 'loading' || !email}
-                className="w-full h-10 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full h-10 rounded-lg bg-indigo-600 hover:bg-[#4338ca] text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {status === 'loading'
                   ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
@@ -407,53 +410,41 @@ function LoadingOverlay({ url, currentStep }: { url: string; currentStep: number
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-50 bg-[#0f172a] flex flex-col items-center justify-center px-6"
+      className="fixed inset-0 z-50 bg-[#0f172a] flex flex-col items-center justify-center px-6 min-h-screen"
     >
-      <div className="w-full max-w-sm flex flex-col items-center">
-        <Wordmark />
+      <Wordmark />
 
-        <div className="flex flex-col items-center mt-8">
-          <p className="text-slate-500 text-xs font-mono tracking-widest uppercase">AUDITING</p>
-          <p className="text-slate-300 font-mono text-sm mt-1 break-all max-w-xs text-center leading-relaxed">{url}</p>
-        </div>
-
-        <div className="w-full flex flex-col mt-12">
-          {STEPS.map((step, i) => {
-            const isDone = i < currentStep
-            const isActive = i === currentStep
-            return (
-              <div
-                key={step}
-                className={cn(
-                  'flex items-center gap-3 py-2.5 transition-all duration-500',
-                  isActive ? 'border-l-2 border-indigo-500 pl-3' : 'pl-[calc(0.75rem+2px)]'
-                )}
-              >
-                <div className="w-4 text-center shrink-0">
-                  {isDone ? (
-                    <span className="text-emerald-400 text-sm">✓</span>
-                  ) : isActive ? (
-                    <motion.span
-                      animate={{ opacity: [1, 0.3, 1] }}
-                      transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
-                      className="text-indigo-400 text-sm block"
-                    >✦</motion.span>
-                  ) : (
-                    <span className="text-slate-700 text-sm">·</span>
-                  )}
-                </div>
-                <span className={cn('text-sm transition-colors duration-300',
-                  isDone ? 'text-slate-400' : isActive ? 'text-indigo-400 font-medium' : 'text-slate-700'
-                )}>
-                  {step}
-                </span>
-              </div>
-            )
-          })}
-        </div>
-
-        <p className="text-slate-700 text-xs mt-12">Usually takes 20–40 seconds</p>
+      <div className="flex flex-col items-center mt-8">
+        <p className="text-slate-400 text-xs font-mono tracking-widest uppercase">AUDITING</p>
+        <p className="text-slate-200 font-mono text-sm mt-1 break-all max-w-xs text-center leading-relaxed">{url}</p>
       </div>
+
+      <div className="flex flex-col w-fit mx-auto mt-10">
+        {STEPS.map((step, i) => {
+          const isDone = i < currentStep
+          const isActive = i === currentStep
+          return (
+            <div key={step} className="flex items-center gap-3 py-2">
+              <div className="w-4 text-center shrink-0">
+                {isDone ? (
+                  <span className="text-emerald-400 text-sm">✓</span>
+                ) : isActive ? (
+                  <span className="text-indigo-400 text-sm animate-pulse inline-block">✦</span>
+                ) : (
+                  <span className="text-slate-500 text-lg leading-none">·</span>
+                )}
+              </div>
+              <span className={cn('text-sm transition-colors duration-300',
+                isDone ? 'text-slate-400' : isActive ? 'text-indigo-400 font-medium' : 'text-slate-500'
+              )}>
+                {step}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
+      <p className="text-slate-500 text-xs mt-12">Usually takes 20–40 seconds</p>
     </motion.div>
   )
 }

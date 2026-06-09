@@ -91,7 +91,7 @@ export function ScoreCard({ score }: { score: ShipAuditScore }) {
             className={`flex items-center justify-between gap-4 py-2.5 ${i < score.topOpportunities.length - 1 ? 'border-b border-slate-100' : ''}`}
           >
             <span className="text-slate-700 text-sm truncate">{f.title}</span>
-            <span className="shrink-0 bg-indigo-50 text-indigo-600 text-xs font-mono rounded px-2 py-0.5">+{f.estimatedPointImpact} pts</span>
+            <span className="shrink-0 bg-indigo-50 text-indigo-700 text-xs font-mono rounded px-2 py-0.5">+{f.estimatedPointImpact} pts</span>
           </div>
         ))}
         <p className="text-slate-400 text-xs mt-2">Point impacts are individual estimates, not cumulative.</p>
