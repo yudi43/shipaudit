@@ -146,7 +146,6 @@ export default function Home() {
             <HLine delay={0.06}>Paste any URL.</HLine>
             <HLine delay={0.14} indigo>AI-powered audit.</HLine>
             <HLine delay={0.22}>Human-readable fixes.</HLine>
-            <HLine delay={0.30} extrabold>30 seconds.</HLine>
           </h1>
 
           {/* Subtext */}
@@ -199,7 +198,7 @@ export default function Home() {
             transition={{ delay: 0.7, duration: 0.45 }}
             className="flex flex-wrap items-center justify-center gap-2"
           >
-            {['⚡ 22s average', '✓ Google CWV thresholds', '⚙ Framework-aware fixes'].map((label) => (
+            {['⚡ Under 60s', '✓ Google CWV thresholds', '⚙ Framework-aware fixes'].map((label) => (
               <span
                 key={label}
                 className="px-2.5 py-1 rounded-full bg-[#0f172a] border border-[#1e293b] text-slate-500 text-xs"
@@ -444,7 +443,7 @@ function LoadingOverlay({ url, currentStep }: { url: string; currentStep: number
         })}
       </div>
 
-      <p className="text-slate-500 text-xs mt-12">Usually takes 20–40 seconds</p>
+      <p className="text-slate-500 text-xs mt-12">Usually takes 20–60 seconds</p>
     </motion.div>
   )
 }
