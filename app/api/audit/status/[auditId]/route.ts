@@ -7,7 +7,7 @@ const redis = new Redis({
 })
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ auditId: string }> }
 ) {
   const { auditId } = await params
@@ -19,6 +19,29 @@ export async function GET(
   }
 
   const parsed = typeof status === 'string' ? JSON.parse(status) : status
+
+  // First time we see 'processing': update to 'running' then fire the pipeline.
+  // Updating first prevents subsequent polls from double-triggering.
+  if (parsed.status === 'processing') {
+    await redis.set(
+      `audit-status:${auditId}`,
+      JSON.stringify({ ...parsed, status: 'running' }),
+      { ex: 600 }
+    )
+
+    const host = req.headers.get('host')
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
+    fetch(`${protocol}://${host}/api/audit/process/${auditId}`, {
+      method: 'POST',
+    }).catch(() => {})
+
+    return NextResponse.json({ status: 'processing' })
+  }
+
+  // 'running' = pipeline is executing — tell client to keep polling
+  if (parsed.status === 'running') {
+    return NextResponse.json({ status: 'processing' })
+  }
 
   return NextResponse.json(parsed)
 }

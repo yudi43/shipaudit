@@ -14,7 +14,6 @@ const STEPS = [
   'Writing AI fix instructions',
 ]
 
-const STEP_DELAYS_MS = [0, 3000, 35000, 55000]
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // ── Geometric logo mark — two offset bars ────────────────────────────────────
@@ -63,13 +62,6 @@ export default function Home() {
     timerIds.current = []
   }
 
-  function startProgress() {
-    clearTimers()
-    STEP_DELAYS_MS.forEach((delay, i) => {
-      timerIds.current.push(setTimeout(() => setCurrentStep(i), delay))
-    })
-  }
-
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault()
     const trimmed = url.trim()
@@ -77,7 +69,7 @@ export default function Home() {
     setError('')
     setIsLoading(true)
     setAnalyzingUrl(trimmed)
-    startProgress()
+    setCurrentStep(0)  // Step 1: "Fetching page structure" — immediately
     posthog.capture('audit_submitted', { url: trimmed })
 
     function handleError(message: string) {
@@ -88,8 +80,10 @@ export default function Home() {
       posthog.capture('audit_failed', { url: trimmed, error: message })
     }
 
+    // Step 2 advances at 8s — GitHub Actions has started by now
+    timerIds.current.push(setTimeout(() => setCurrentStep(1), 8000))
+
     try {
-      // Step 1: trigger the audit (completes in <3s)
       const triggerRes = await fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,17 +97,16 @@ export default function Home() {
         return
       }
 
-      // Cache hit — skip straight to report
+      // Cache hit — go straight to report
       if (triggerData.status === 'complete') {
         router.push(`/report/${triggerData.reportId}`)
         return
       }
 
       const { auditId } = triggerData
-      const maxAttempts = 60  // 60 × 3s = 3 min max
+      const maxAttempts = 60  // 60 × 5s = 5 min max
       let attempts = 0
 
-      // Step 2: poll /api/audit/status/:auditId every 3s
       const poll = async () => {
         if (attempts >= maxAttempts) {
           handleError('Audit timed out. Please try again.')
@@ -126,7 +119,8 @@ export default function Home() {
           const data: { status: string; reportId?: string; message?: string } = await statusRes.json()
 
           if (data.status === 'complete') {
-            router.push(`/report/${data.reportId}`)
+            setCurrentStep(3)  // Step 4: "Writing AI fix instructions" — briefly before redirect
+            timerIds.current.push(setTimeout(() => router.push(`/report/${data.reportId}`), 600))
             return
           }
 
@@ -135,15 +129,18 @@ export default function Home() {
             return
           }
 
-          // Still pending — check again in 3s
-          setTimeout(poll, 3000)
+          // Still pending — poll again in 5s
+          timerIds.current.push(setTimeout(poll, 5000))
         } catch {
-          setTimeout(poll, 3000)
+          timerIds.current.push(setTimeout(poll, 5000))
         }
       }
 
-      // Give GitHub Actions 15s to spin up before first poll
-      setTimeout(poll, 15000)
+      // Step 3 advances and first poll fires at 40s — Lighthouse is running by now
+      timerIds.current.push(setTimeout(() => {
+        setCurrentStep(2)
+        poll()
+      }, 40000))
     } catch (err) {
       handleError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
     }
