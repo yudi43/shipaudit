@@ -8,7 +8,7 @@ export default function AppleIcon() {
     (
       <div
         style={{
-          background: '#0f172a',
+          background: '#4f46e5',
           width: '100%',
           height: '100%',
           display: 'flex',
@@ -17,16 +17,7 @@ export default function AppleIcon() {
           borderRadius: '36px',
         }}
       >
-        <div
-          style={{
-            color: '#818cf8',
-            fontSize: '110px',
-            fontWeight: 'bold',
-            lineHeight: 1,
-          }}
-        >
-          ⚡
-        </div>
+        <div style={{ color: '#ffffff', fontSize: '100px', fontWeight: 'bold' }}>S</div>
       </div>
     ),
     { ...size }

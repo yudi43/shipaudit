@@ -30,32 +30,50 @@ export default function OGImage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '24px',
             }}
           >
-            ⚡
+            <div style={{ color: '#ffffff', fontSize: '18px', fontWeight: 'bold' }}>SA</div>
           </div>
-          <div style={{ color: '#ffffff', fontSize: '32px', fontWeight: 'bold', letterSpacing: '-0.5px' }}>
-            Ship<span style={{ color: '#818cf8' }}>Audit</span>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ color: '#ffffff', fontSize: '32px', fontWeight: 'bold', letterSpacing: '-0.5px' }}>Ship</span>
+            <span style={{ color: '#818cf8', fontSize: '32px', fontWeight: 'bold', letterSpacing: '-0.5px' }}>Audit</span>
           </div>
         </div>
 
-        {/* Headline */}
+        {/* Headline — split into two lines, no <br /> */}
         <div
           style={{
-            color: '#ffffff',
-            fontSize: '56px',
-            fontWeight: 'bold',
-            textAlign: 'center',
-            lineHeight: 1.1,
-            letterSpacing: '-1px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
             marginBottom: '24px',
             maxWidth: '900px',
           }}
         >
-          Paste any URL.
-          <br />
-          <span style={{ color: '#818cf8' }}>AI-powered audit.</span>
+          <div
+            style={{
+              color: '#ffffff',
+              fontSize: '56px',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              lineHeight: 1.1,
+              letterSpacing: '-1px',
+            }}
+          >
+            Paste any URL.
+          </div>
+          <div
+            style={{
+              color: '#818cf8',
+              fontSize: '56px',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              lineHeight: 1.1,
+              letterSpacing: '-1px',
+            }}
+          >
+            AI-powered audit.
+          </div>
         </div>
 
         {/* Subtext */}
@@ -63,9 +81,9 @@ export default function OGImage() {
           Real-world mobile conditions · Framework-specific fixes · Under 90s
         </div>
 
-        {/* Stats row */}
+        {/* Stats row — no emoji */}
         <div style={{ display: 'flex', gap: '16px' }}>
-          {['⚡ Under 90s', '✓ Real-world mobile', '⚙ Framework-aware fixes'].map((stat) => (
+          {['Under 90s', 'Real-world mobile', 'Framework-aware fixes'].map((stat) => (
             <div
               key={stat}
               style={{

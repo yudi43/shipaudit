@@ -21,6 +21,12 @@ export async function GET(
 
   const scoreColor = score >= 90 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444'
 
+  const stats = [
+    `${findingCount} issues found`,
+    'Throttled mobile',
+    'getshipaudit.vercel.app',
+  ]
+
   return new ImageResponse(
     (
       <div
@@ -35,10 +41,22 @@ export async function GET(
         }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '48px' }}>
-          <div style={{ color: '#818cf8', fontSize: '20px' }}>⚡</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px' }}>
+          <div
+            style={{
+              background: '#4f46e5',
+              borderRadius: '6px',
+              width: '30px',
+              height: '30px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div style={{ color: '#ffffff', fontSize: '14px', fontWeight: 'bold' }}>SA</div>
+          </div>
           <div style={{ color: '#94a3b8', fontSize: '18px' }}>ShipAudit</div>
-          <div style={{ color: '#334155', fontSize: '18px', margin: '0 8px' }}>·</div>
+          <div style={{ color: '#334155', fontSize: '18px' }}>·</div>
           <div style={{ color: '#64748b', fontSize: '18px' }}>Stress Test Report</div>
         </div>
 
@@ -55,7 +73,7 @@ export async function GET(
           {domain}
         </div>
 
-        {/* Score row */}
+        {/* Score row — use template literals to avoid expression+text multi-child */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', marginBottom: '24px' }}>
           <div
             style={{
@@ -66,22 +84,18 @@ export async function GET(
               fontFamily: 'monospace',
             }}
           >
-            {score}
+            {`${score}`}
           </div>
           <div style={{ color: '#475569', fontSize: '36px', fontFamily: 'monospace' }}>/100</div>
-          <div style={{ color: '#334155', fontSize: '24px', marginLeft: '8px' }}>→</div>
+          <div style={{ color: '#334155', fontSize: '24px' }}>-&gt;</div>
           <div style={{ color: '#6366f1', fontSize: '28px', fontFamily: 'monospace' }}>
-            {achievable}/100 achievable
+            {`${achievable}/100 achievable`}
           </div>
         </div>
 
         {/* Stats row */}
         <div style={{ display: 'flex', gap: '12px', marginTop: 'auto' }}>
-          {[
-            `${findingCount} issues found`,
-            'Measured on throttled mobile',
-            'getshipaudit.vercel.app',
-          ].map((label) => (
+          {stats.map((label) => (
             <div
               key={label}
               style={{
