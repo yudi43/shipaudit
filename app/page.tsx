@@ -261,8 +261,8 @@ export default function Home() {
       {/* Footer */}
       <footer className="relative z-10 w-full border-t border-zinc-900 pb-8 pt-6 px-6">
         <div className="max-w-6xl mx-auto flex flex-col items-center gap-1.5">
-          <Logo size="sm" theme="light" />
-          <p className="text-slate-700 text-xs">AI-powered performance analysis. No account required.</p>
+          <Logo size="sm" theme="dark" />
+          <p className="text-slate-500 text-xs">AI-powered performance analysis. No account required.</p>
         </div>
       </footer>
 
