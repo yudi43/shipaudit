@@ -145,15 +145,14 @@ export default function Home() {
   }
 
   return (
-    <div className="relative min-h-screen bg-[#0A0A0A] overflow-x-hidden flex flex-col">
+    <div className="relative min-h-screen bg-[#0d1117] overflow-x-hidden flex flex-col">
       <AnimatedBackground />
 
       {/* Header */}
-      <header className="relative z-10 w-full max-w-6xl mx-auto px-6 pt-5 flex items-center justify-between">
+      <header className="relative z-10 w-full max-w-6xl mx-auto px-6 pt-5 flex items-center gap-3">
         <Logo size="md" theme="dark" />
         <div
-          className="px-3 py-1 rounded-full text-xs font-medium text-indigo-400 border border-indigo-500/30"
-          style={{ background: 'rgba(79,70,229,0.1)' }}
+          style={{ background: 'rgba(79,70,229,0.08)', border: '1px solid rgba(99,102,241,0.2)', color: '#818cf8', fontSize: '11px', padding: '3px 10px', borderRadius: '20px' }}
         >
           AI-Powered · Free
         </div>
@@ -162,17 +161,6 @@ export default function Home() {
       {/* Hero — everything above fold on 1280×800 */}
       <main className="relative z-10 flex-1 flex flex-col items-center px-6 pt-16 pb-12">
         <div className="w-full max-w-2xl flex flex-col items-center text-center gap-5">
-
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
-            className="inline-flex items-center px-3 py-1 rounded-full border border-indigo-500/20 text-indigo-400 text-xs font-medium"
-            style={{ background: 'rgba(99,102,241,0.08)', boxShadow: '0 0 12px rgba(99,102,241,0.18)' }}
-          >
-            ✦ AI Performance Auditor
-          </motion.div>
 
           {/* Headline — hard cap text-4xl md:text-5xl */}
           <h1 className="text-4xl md:text-5xl font-bold leading-[1.15] tracking-tight">
@@ -234,7 +222,7 @@ export default function Home() {
             {['⚡ Under 90s', '✓ Real-world mobile conditions', '⚙ Framework-aware fixes'].map((label) => (
               <span
                 key={label}
-                className="px-2.5 py-1 rounded-full bg-[#0f172a] border border-[#1e293b] text-slate-500 text-xs"
+                className="px-2.5 py-1 rounded-full bg-[#161b22] border border-[#21262d] text-[#8b949e] text-xs"
               >
                 {label}
               </span>
@@ -259,7 +247,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 w-full border-t border-zinc-900 pb-8 pt-6 px-6">
+      <footer className="relative z-10 w-full border-t border-[#21262d] pb-8 pt-6 px-6">
         <div className="max-w-6xl mx-auto flex flex-col items-center gap-1.5">
           <Logo size="sm" theme="dark" />
           <p className="text-slate-500 text-xs">AI-powered performance analysis. No account required.</p>
@@ -317,7 +305,7 @@ function PillInput({
   const [focused, setFocused] = useState(false)
   return (
     <div
-      className="flex w-full rounded-2xl overflow-hidden border border-[#1e293b] bg-[#0f172a] transition-shadow duration-150"
+      className="flex w-full rounded-2xl overflow-hidden border border-[#30363d] bg-[#161b22] transition-shadow duration-150"
       style={{ boxShadow: focused ? '0 0 0 2px rgba(79,70,229,0.4)' : undefined }}
     >
       <input
@@ -369,14 +357,14 @@ function GuardCard({
     <div
       className="rounded-2xl grid grid-cols-1 md:grid-cols-2 overflow-hidden"
       style={{
-        background: '#0f172a',
-        border: '1px solid #1e293b',
+        background: '#161b22',
+        border: '1px solid #21262d',
         borderTopColor: '#4f46e5',
         borderTopWidth: '3px',
         boxShadow: '0 0 40px rgba(79,70,229,0.08)',
       }}
     >
-      <div className="flex flex-col gap-5 p-7 md:border-r border-[#1e293b]">
+      <div className="flex flex-col gap-5 p-7 md:border-r border-[#21262d]">
         <div className="flex flex-col gap-1">
           <span className="text-indigo-400 text-xs font-mono tracking-widest uppercase">Coming Soon</span>
           <h2 className="text-white text-xl font-bold tracking-tight">ShipAudit Guard</h2>
@@ -387,7 +375,7 @@ function GuardCard({
         </div>
         <div className="flex flex-col gap-2">
           {features.map(({ icon, text }) => (
-            <div key={text} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm border border-[#1e293b]" style={{ background: '#1e293b', color: '#94a3b8' }}>
+            <div key={text} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm border border-[#21262d]" style={{ background: '#21262d', color: '#8b949e' }}>
               <span style={{ color: '#818cf8' }}>{icon}</span>
               {text}
             </div>
@@ -414,7 +402,7 @@ function GuardCard({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full h-10 px-3 rounded-lg border focus:border-indigo-500 focus:outline-none text-sm transition-colors placeholder-[#475569]"
-                style={{ background: '#0f172a', borderColor: '#334155', color: '#f1f5f9' }}
+                style={{ background: '#161b22', borderColor: '#30363d', color: '#f1f5f9' }}
               />
               <button
                 type="submit"
