@@ -30,10 +30,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const report = await redis.get<AuditReport>(`report:${id}`)
 
-  if (!report) return { title: 'Report Not Found — ShipAudit' }
+  if (!report) return { title: 'Report Not Found | ShipAudit' }
 
   const domain = new URL(report.url).hostname
-  const title = `${domain} scored ${report.score.current}/100 — ShipAudit`
+  const title = `${domain} scored ${report.score.current}/100 | ShipAudit`
   const snippet = report.executiveSummary ? report.executiveSummary.slice(0, 120) + '…' : ''
   const description = `${domain} scored ${report.score.current}/100 on ShipAudit's stress test. Achievable: ${report.score.achievable}/100. ${report.findings.length} issues found. ${snippet}`
   const ogImage = `/api/og/report/${id}`

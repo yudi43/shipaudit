@@ -16,7 +16,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'ShipAudit — AI-Powered Performance Audit',
+  title: 'ShipAudit | AI-Powered Performance Audit',
   description:
     'Paste any URL. Get a stress-tested performance audit measured on real mobile conditions. AI-generated findings ranked by impact with framework-specific fix instructions.',
   keywords: ['performance audit', 'web performance', 'core web vitals', 'lighthouse', 'Next.js performance', 'AI performance tool'],
@@ -28,14 +28,14 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: 'https://getshipaudit.vercel.app',
     siteName: 'ShipAudit',
-    title: 'ShipAudit — AI-Powered Performance Audit',
+    title: 'ShipAudit | AI-Powered Performance Audit',
     description:
       'Paste any URL. Get a stress-tested performance audit in under 90 seconds. Real-world mobile conditions. AI fix instructions ready to paste into Cursor.',
-    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'ShipAudit — AI-Powered Performance Audit' }],
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'ShipAudit | AI-Powered Performance Audit' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ShipAudit — AI-Powered Performance Audit',
+    title: 'ShipAudit | AI-Powered Performance Audit',
     description: 'Paste any URL. Get a stress-tested performance audit in under 90 seconds.',
     images: ['/opengraph-image'],
     creator: '@buildwithyudi',
