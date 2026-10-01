@@ -16,14 +16,27 @@ export async function generateReportId(url: string): Promise<string> {
 
 export function normalizeUrl(raw: string): string {
   const trimmed = raw.trim()
-  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`
   const parsed = new URL(withProtocol) // throws TypeError on invalid URL
+  if (
+    !['http:', 'https:'].includes(parsed.protocol) ||
+    !parsed.hostname.includes('.') ||
+    parsed.username ||
+    parsed.password
+  )
+    throw new Error('Enter a public website URL')
   parsed.hash = ''
   const href = parsed.toString()
   return href.endsWith('/') ? href.slice(0, -1) : href
 }
 
-export function formatVitalValue(value: number, unit: 'ms' | 's' | ''): string {
+export function formatVitalValue(
+  value: number | null,
+  unit: 'ms' | 's' | '',
+): string {
+  if (value === null) return '—'
   if (unit === 'ms') {
     if (value >= 1000) return `${(value / 1000).toFixed(1)}s`
     return `${Math.round(value)}ms`

@@ -1,19 +1,43 @@
 import Groq from 'groq-sdk'
-import type { DetectedStack, Finding, WebVital, ThirdPartyAudit, ImageAudit, FontAudit } from './types'
+import type {
+  DetectedStack,
+  Finding,
+  WebVital,
+  ThirdPartyAudit,
+  ImageAudit,
+  FontAudit,
+} from './types'
 import { formatVitalValue } from './utils'
 
-const client = new Groq({ apiKey: process.env.GROQ_API_KEY })
+const client = process.env.GROQ_API_KEY
+  ? new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+      timeout: 20000,
+      maxRetries: 0,
+    })
+  : null
 
-async function complete(prompt: string, maxTokens: number, fallback: string): Promise<string> {
+async function complete(
+  prompt: string,
+  maxTokens: number,
+  fallback: string,
+): Promise<string> {
+  if (!client) return fallback
   try {
     const msg = await client.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      max_tokens: maxTokens,
+      model: 'openai/gpt-oss-120b',
+      // The completion budget includes reasoning as well as the final prose.
+      max_completion_tokens: maxTokens + 1024,
+      reasoning_effort: 'low',
+      include_reasoning: false,
       messages: [{ role: 'user', content: prompt }],
     })
-    return msg.choices[0]?.message?.content?.trim() ?? fallback
+    return msg.choices[0]?.message?.content?.trim() || fallback
   } catch (err) {
-    console.error('[summarize] Groq API error:', err instanceof Error ? err.message : err)
+    console.error(
+      '[summarize] Groq API error:',
+      err instanceof Error ? err.message : err,
+    )
     return fallback
   }
 }
@@ -40,26 +64,36 @@ export async function generateExecutiveSummary({
   fonts: FontAudit
 }): Promise<string> {
   const vitalLines = vitals
-    .map((v) => `${v.metric}: ${formatVitalValue(v.value, v.unit)} (${v.status})`)
+    .map(
+      (v) => `${v.metric}: ${formatVitalValue(v.value, v.unit)} (${v.status})`,
+    )
     .join(', ')
   const findingLines = topFindings
     .map((f) => `- ${f.title} (+${f.estimatedPointImpact} pts)`)
     .join('\n')
 
   const extraContext: string[] = []
-  if (thirdParty.worstOffender && thirdParty.worstOffender.blockingTimeMs > 100) {
-    extraContext.push(`Worst third party: ${thirdParty.worstOffender.name} adding ${thirdParty.worstOffender.blockingTimeMs}ms blocking time`)
+  if (
+    thirdParty.worstOffender &&
+    thirdParty.worstOffender.blockingTimeMs > 100
+  ) {
+    extraContext.push(
+      `Worst third party: ${thirdParty.worstOffender.name} adding ${thirdParty.worstOffender.blockingTimeMs}ms blocking time`,
+    )
   }
   if (images.totalWastedKb > 500) {
     extraContext.push(`Images could save ${images.totalWastedKb}KB total`)
   }
   if (fonts.renderBlockingCount > 0) {
-    extraContext.push(`${fonts.renderBlockingCount} font${fonts.renderBlockingCount > 1 ? 's' : ''} are render-blocking`)
+    extraContext.push(
+      `${fonts.renderBlockingCount} font${fonts.renderBlockingCount > 1 ? 's' : ''} are render-blocking`,
+    )
   }
 
-  const extraSection = extraContext.length > 0
-    ? `\nAdditional context:\n${extraContext.map((l) => `- ${l}`).join('\n')}`
-    : ''
+  const extraSection =
+    extraContext.length > 0
+      ? `\nAdditional context:\n${extraContext.map((l) => `- ${l}`).join('\n')}`
+      : ''
 
   const prompt = `You are a performance engineering expert writing an audit report summary.
 
@@ -70,7 +104,7 @@ Core Web Vitals: ${vitalLines}
 Top opportunities:
 ${findingLines}${extraSection}
 
-Important context: This audit was run with mobile CPU throttling and simulated 4G network — the same methodology Google uses for real-world CWV measurement. Scores will be lower than DevTools which runs on the developer's fast local machine. Frame findings in terms of real user experience, not DevTools comparison. Never say the score is 'low' — say it reflects performance under real-world mobile conditions.
+Important context: This is a simulated mobile lab test, not real-user field data. INP may be unavailable because the test is navigation-only. Do not turn unavailable measurements into zeros or claim the site passes all Core Web Vitals. Estimated potential and point gains overlap; they are not guaranteed. Use web standards when the framework is Unknown. Do not promise improvement without a re-test.
 
 Write 2-3 sentences of plain English that tell the performance story of this site.
 Rules:
@@ -80,7 +114,7 @@ Rules:
 - Do not start with "Your site" or "This site"
 - No bullet points, no headers, plain prose only`
 
-  const fallback = `Performance analysis for ${url} (${stack.framework}): ShipAudit Score ${currentScore}/100, achievable ${achievableScore}/100. Top opportunities include ${topFindings.map((f) => f.title).join(', ')}.`
+  const fallback = `Performance analysis for ${url} (${stack.framework}): ShipAudit Score ${currentScore}/100, achievable ${achievableScore}/100. ${topFindings.length ? `Top opportunities include ${topFindings.map((f) => f.title).join(', ')}.` : 'No automated failures were found; review manual checks.'} Estimated gains need a re-test.`
   return complete(prompt, 256, fallback)
 }
 
@@ -100,32 +134,39 @@ export async function generateCursorPrompt({
   fonts: FontAudit
 }): Promise<string> {
   const topFive = findings.slice(0, 5)
-  const fixLines = topFive
-    .map((f) => `- ${f.title}: ${f.fix}`)
-    .join('\n')
+  const fixLines = topFive.map((f) => `- ${f.title}: ${f.fix}`).join('\n')
 
   const specificFixes: string[] = []
 
   // Name specific third-party services to defer
-  const slowThirdParties = thirdParty.services.filter((s) => s.blockingTimeMs > 50)
+  const slowThirdParties = thirdParty.services.filter(
+    (s) => s.blockingTimeMs > 50,
+  )
   if (slowThirdParties.length > 0) {
-    specificFixes.push(`Defer or lazy-load these third-party scripts: ${slowThirdParties.map((s) => s.name).join(', ')}`)
+    specificFixes.push(
+      `Defer or lazy-load these third-party scripts: ${slowThirdParties.map((s) => s.name).join(', ')}`,
+    )
   }
 
   // Name specific image files
   const topImageIssues = images.issues.slice(0, 2)
   if (topImageIssues.length > 0) {
-    specificFixes.push(`Optimize these images: ${topImageIssues.map((i) => `${i.filename} (save ~${i.wastedSizeKb}KB)`).join(', ')}`)
+    specificFixes.push(
+      `Optimize these images: ${topImageIssues.map((i) => `${i.filename} (save ~${i.wastedSizeKb}KB)`).join(', ')}`,
+    )
   }
 
   // Mention font-display:swap if missing
   if (fonts.missingFontDisplayCount > 0) {
-    specificFixes.push(`Add font-display: swap to ${fonts.missingFontDisplayCount} font declaration${fonts.missingFontDisplayCount > 1 ? 's' : ''} to prevent invisible text during load`)
+    specificFixes.push(
+      `Add font-display: swap to ${fonts.missingFontDisplayCount} font declaration${fonts.missingFontDisplayCount > 1 ? 's' : ''} to prevent invisible text during load`,
+    )
   }
 
-  const specificSection = specificFixes.length > 0
-    ? `\nSpecific issues to address:\n${specificFixes.map((l) => `- ${l}`).join('\n')}`
-    : ''
+  const specificSection =
+    specificFixes.length > 0
+      ? `\nSpecific issues to address:\n${specificFixes.map((l) => `- ${l}`).join('\n')}`
+      : ''
 
   const prompt = `You are writing a single, actionable prompt for a developer to paste into Cursor or Claude Code to fix the performance issues on their website.
 
@@ -136,7 +177,9 @@ ${fixLines}${specificSection}
 
 Write a single prompt (no preamble, no "Here is your prompt:") that:
 - Opens with a one-sentence description of the task
-- Lists the specific framework-aware fixes to implement (using ${stack.framework} conventions)
+- Lists specific fixes using ${stack.framework === 'Unknown' ? 'standard web techniques; confirm the framework from the codebase first' : stack.framework + ' conventions'}
+- If no issues were found, ask for manual verification instead of inventing problems
+- Ask the developer to inspect the implementation before changing code and verify with a fresh mobile audit
 - Is actionable and specific enough that an AI coding assistant can implement without ambiguity
 - Ends with exactly this sentence: "Preserve all existing functionality and target an LCP below 2.5 seconds."
 

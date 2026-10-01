@@ -20,22 +20,28 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      AUDIT_URL: ${{ inputs.url }}
+      CALLBACK_URL: ${{ inputs.callback_url }}
+      AUDIT_ID: ${{ inputs.audit_id }}
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
 
       - name: Install Lighthouse
-        run: npm install -g lighthouse
+        run: npm install -g lighthouse@12.8.2
 
       - name: Run Lighthouse
         id: lighthouse
         continue-on-error: true
         run: |
-          lighthouse "${{ github.event.inputs.url }}" \
+          lighthouse "$AUDIT_URL" \
             --output=json \
             --output-path=./lhr.json \
             --chrome-flags="--headless --no-sandbox --disable-gpu --no-first-run" \
@@ -43,18 +49,19 @@ jobs:
 
       - name: Send results to callback
         if: always()
+        env:
+          AUDIT_SECRET: ${{ secrets.AUDIT_CALLBACK_SECRET }}
         run: |
           if [ -f ./lhr.json ]; then
-            curl -X POST "${{ github.event.inputs.callback_url }}" \
-              -H "Content-Type: application/json" \
-              -H "x-audit-id: ${{ github.event.inputs.audit_id }}" \
-              -H "x-audit-secret: ${{ secrets.AUDIT_CALLBACK_SECRET }}" \
-              --data-binary @lhr.json \
-              --max-time 30
+            result_file=./lhr.json
           else
-            curl -X POST "${{ github.event.inputs.callback_url }}" \
-              -H "Content-Type: application/json" \
-              -H "x-audit-id: ${{ github.event.inputs.audit_id }}" \
-              -H "x-audit-secret: ${{ secrets.AUDIT_CALLBACK_SECRET }}" \
-              -d '{"error":"Lighthouse failed to produce output"}'
+            result_file=./audit-error.json
+            printf '%s' '{"error":"Lighthouse failed to produce output"}' > "$result_file"
           fi
+          curl --fail-with-body --silent --show-error -X POST "$CALLBACK_URL" \
+            -H "Content-Type: application/json" \
+            -H "x-audit-id: $AUDIT_ID" \
+            -H "x-audit-secret: $AUDIT_SECRET" \
+            --data-binary "@$result_file" \
+            --connect-timeout 10 \
+            --max-time 30

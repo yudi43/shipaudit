@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Redis } from '@upstash/redis'
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-})
+import { getRedis } from '@/lib/redis'
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-audit-secret')
@@ -17,6 +12,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing audit ID' }, { status: 400 })
   }
 
+  const redis = getRedis()
   const body = await req.text()
 
   // Store the raw LHR for the process route to consume
@@ -25,11 +21,12 @@ export async function POST(req: NextRequest) {
   // Advance status to 'processing' — the next status poll will trigger the pipeline
   const statusRaw = await redis.get<string>(`audit-status:${auditId}`)
   if (statusRaw) {
-    const existing = typeof statusRaw === 'string' ? JSON.parse(statusRaw) : statusRaw
+    const existing =
+      typeof statusRaw === 'string' ? JSON.parse(statusRaw) : statusRaw
     await redis.set(
       `audit-status:${auditId}`,
       JSON.stringify({ ...existing, status: 'processing' }),
-      { ex: 600 }
+      { ex: 600 },
     )
   }
 

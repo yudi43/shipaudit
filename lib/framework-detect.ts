@@ -7,16 +7,24 @@ const UNKNOWN_STACK: DetectedStack = {
   rawSignals: [],
 }
 
+export function detectTailwind(html: string): boolean {
+  if (/--tw-[a-z-]+\s*:/.test(html)) return true
+  const classes = Array.from(html.matchAll(/\bclass\s*=\s*["']([^"']*)["']/gi))
+    .map((match) => match[1])
+    .join(' ')
+  const utilities = classes.match(
+    /\b(?:text-(?:xs|sm|base|lg|xl|[2-9]xl)|(?:text|bg)-[a-z]+-\d{2,3}|[pm][xytrbl]?-\d+|(?:grid-cols|gap)-\d+|rounded-(?:sm|md|lg|xl|[2-3]xl))\b/g,
+  )
+  return new Set(utilities ?? []).size >= 3
+}
+
 export async function detectFramework(url: string): Promise<DetectedStack> {
   try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 10_000)
-
     const res = await fetch(url, {
-      signal: controller.signal,
+      signal: AbortSignal.timeout(10_000),
       headers: { 'User-Agent': 'ShipAudit/1.0' },
     })
-    clearTimeout(timeout)
+    if (!res.ok) return UNKNOWN_STACK
 
     const html = await res.text()
     const headers = res.headers
@@ -46,7 +54,10 @@ export async function detectFramework(url: string): Promise<DetectedStack> {
     } else if (html.includes('__svelte') || html.includes('svelte-')) {
       framework = 'Svelte'
       rawSignals.push('html:svelte')
-    } else if (html.includes('data-reactroot') || html.includes('data-reactid')) {
+    } else if (
+      html.includes('data-reactroot') ||
+      html.includes('data-reactid')
+    ) {
       framework = 'React'
       rawSignals.push('html:data-reactroot')
     } else if (html.includes('wp-content') || html.includes('wp-includes')) {
@@ -57,16 +68,25 @@ export async function detectFramework(url: string): Promise<DetectedStack> {
     // ── Platform detection (response headers) ───────────────────────────────
     let deployPlatform: DeployPlatform = 'Unknown'
 
-    if (headers.get('x-vercel-id') || headers.get('server')?.includes('Vercel')) {
+    if (
+      headers.get('x-vercel-id') ||
+      headers.get('server')?.includes('Vercel')
+    ) {
       deployPlatform = 'Vercel'
       rawSignals.push('header:x-vercel-id')
-    } else if (headers.get('x-railway-request-id') || headers.get('server')?.includes('railway')) {
+    } else if (
+      headers.get('x-railway-request-id') ||
+      headers.get('server')?.includes('railway')
+    ) {
       deployPlatform = 'Railway'
       rawSignals.push('header:x-railway-request-id')
     } else if (headers.get('x-nf-request-id') || headers.get('x-netlify')) {
       deployPlatform = 'Netlify'
       rawSignals.push('header:x-nf-request-id')
-    } else if (headers.get('x-render-origin-server') || headers.get('server')?.includes('Render')) {
+    } else if (
+      headers.get('x-render-origin-server') ||
+      headers.get('server')?.includes('Render')
+    ) {
       deployPlatform = 'Render'
       rawSignals.push('header:x-render-origin-server')
     } else if (headers.get('fly-request-id')) {
@@ -91,10 +111,7 @@ export async function detectFramework(url: string): Promise<DetectedStack> {
     }
 
     // ── Tailwind detection ───────────────────────────────────────────────────
-    const hasTailwind =
-      /\b(?:text-\w+-\d+|bg-\w+-\d+|p[xy]?-\d+|m[xy]?-\d+|flex|grid|rounded(?:-\w+)?|shadow(?:-\w+)?)\b/.test(
-        html
-      )
+    const hasTailwind = detectTailwind(html)
     if (hasTailwind) rawSignals.push('html:tailwind-classes')
 
     return { framework, deployPlatform, hasTailwind, rawSignals }

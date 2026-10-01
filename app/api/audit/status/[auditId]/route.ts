@@ -1,47 +1,57 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { Redis } from '@upstash/redis'
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-})
-
+import { after, NextRequest, NextResponse } from 'next/server'
+import { getRedis } from '@/lib/redis'
+export const maxDuration = 60
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ auditId: string }> }
+  { params }: { params: Promise<{ auditId: string }> },
 ) {
+  const redis = getRedis()
   const { auditId } = await params
-
-  const status = await redis.get<string>(`audit-status:${auditId}`)
-
-  if (!status) {
-    return NextResponse.json({ status: 'not_found' }, { status: 404 })
-  }
-
-  const parsed = typeof status === 'string' ? JSON.parse(status) : status
-
-  // First time we see 'processing': update to 'running' then fire the pipeline.
-  // Updating first prevents subsequent polls from double-triggering.
+  const raw = await redis.get<string>(`audit-status:${auditId}`)
+  if (!raw) return NextResponse.json({ status: 'not_found' }, { status: 404 })
+  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
   if (parsed.status === 'processing') {
-    await redis.set(
-      `audit-status:${auditId}`,
-      JSON.stringify({ ...parsed, status: 'running' }),
-      { ex: 600 }
-    )
-
-    const host = req.headers.get('host')
-    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
-    fetch(`${protocol}://${host}/api/audit/process/${auditId}`, {
-      method: 'POST',
-    }).catch(() => {})
-
+    const locked = await redis.set(`audit-lock:${auditId}`, 'processing', {
+      nx: true,
+      ex: 90,
+    })
+    if (locked) {
+      // after keeps the invocation alive while the report processor responds.
+      after(async () => {
+        try {
+          const response = await fetch(
+            new URL(`/api/audit/process/${auditId}`, req.url),
+            {
+              method: 'POST',
+              headers: process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+                ? {
+                    'x-vercel-protection-bypass':
+                      process.env.VERCEL_AUTOMATION_BYPASS_SECRET,
+                  }
+                : {},
+              signal: AbortSignal.timeout(55000),
+            },
+          )
+          if (!response.ok)
+            console.error('[audit] Processor response:', response.status)
+        } catch {
+          // The report may already have completed even if the HTTP connection timed out.
+          const latest = await redis.get<string>(`audit-status:${auditId}`)
+          const state = typeof latest === 'string' ? JSON.parse(latest) : latest
+          if (state?.status === 'processing')
+            await redis.set(
+              `audit-status:${auditId}`,
+              JSON.stringify({
+                status: 'error',
+                code: 'timeout',
+                message: 'The report processor timed out.',
+              }),
+              { ex: 600 },
+            )
+        }
+      })
+    }
     return NextResponse.json({ status: 'processing' })
   }
-
-  // 'running' = pipeline is executing — tell client to keep polling
-  if (parsed.status === 'running') {
-    return NextResponse.json({ status: 'processing' })
-  }
-
-  return NextResponse.json(parsed)
+  return NextResponse.json(parsed, { headers: { 'Cache-Control': 'no-store' } })
 }

@@ -35,11 +35,11 @@ export interface DetectedStack {
   rawSignals: string[]
 }
 
-export type VitalStatus = 'good' | 'needs-improvement' | 'poor'
+export type VitalStatus = 'good' | 'needs-improvement' | 'poor' | 'unavailable'
 
 export interface WebVital {
   metric: 'LCP' | 'INP' | 'CLS' | 'FCP' | 'TTFB'
-  value: number
+  value: number | null
   unit: 'ms' | 's' | ''
   status: VitalStatus
   threshold: { good: number; needsImprovement: number }
@@ -52,6 +52,11 @@ export interface Finding {
   estimatedPointImpact: number
   fix: string
   lighthouseAuditId: string
+  status?: 'failed' | 'passed' | 'informational'
+  category?: 'Performance' | 'Accessibility' | 'SEO' | 'Best practices'
+  affectedVital?: WebVital['metric']
+  effort?: 'Quick fix' | 'Moderate' | 'Involved'
+  resources?: string[]
 }
 
 export interface ShipAuditScore {
@@ -144,6 +149,9 @@ export interface AuditReport {
   thirdParty?: ThirdPartyAudit
   images?: ImageAudit
   fonts?: FontAudit
+  checks?: Finding[]
+  dataVersion?: number
+  measurement?: { status: 'complete' | 'partial'; missingCategories: string[] }
 }
 
 export interface AuditRequest {
@@ -159,23 +167,25 @@ export interface LighthouseAudit {
   title: string
   description: string
   score: number | null
+  scoreDisplayMode?: string
   numericValue?: number
   displayValue?: string
   details?: {
     type?: string
-    items?: Record<string, unknown>[]
+    items?: Record<string, unknown>[] | Record<string, unknown>
   }
 }
 
 export interface LighthouseResult {
   categories: {
-    performance?: { score: number | null }
-    accessibility?: { score: number | null }
-    'best-practices'?: { score: number | null }
-    seo?: { score: number | null }
+    performance?: { score: number | null; auditRefs?: { id: string }[] }
+    accessibility?: { score: number | null; auditRefs?: { id: string }[] }
+    'best-practices'?: { score: number | null; auditRefs?: { id: string }[] }
+    seo?: { score: number | null; auditRefs?: { id: string }[] }
   }
   audits: Record<string, LighthouseAudit>
   finalDisplayedUrl?: string
   finalUrl?: string
   requestedUrl?: string
+  runtimeError?: { code: string; message: string }
 }

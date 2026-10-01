@@ -1,38 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
-
-const MOOD_LABELS: Record<string, string> = {
-  '😍': 'Loving it',
-  '😐': "It's okay",
-  '😤': 'Needs work',
-  '🐛': "Something's broken",
-}
-
 export async function POST(req: NextRequest) {
-  const { mood, message, page } = await req.json()
-  const moodLabel = mood ? (MOOD_LABELS[mood] ?? mood) : 'No mood selected'
-
+  let body: Record<string, unknown>
   try {
-    await resend.emails.send({
-      from: 'ShipAudit Feedback <onboarding@resend.dev>',
-      to: process.env.FOUNDER_EMAIL!,
-      subject: `Feedback: ${moodLabel}`,
-      html: `
-        <div style="font-family: monospace; padding: 20px; max-width: 600px;">
-          <h2 style="margin: 0 0 16px; font-size: 18px;">New ShipAudit Feedback</h2>
-          <p style="margin: 0 0 8px;"><strong>Mood:</strong> ${mood ?? '—'} ${moodLabel}</p>
-          <p style="margin: 0 0 8px;"><strong>Message:</strong> ${message || '(none)'}</p>
-          <p style="margin: 0 0 8px;"><strong>Page:</strong> ${page}</p>
-          <p style="margin: 0; color: #666;"><strong>Time:</strong> ${new Date().toISOString()}</p>
-        </div>
-      `,
-    })
-  } catch (err) {
-    console.error('[feedback] Resend error:', err instanceof Error ? err.message : err)
-    // Don't surface the error — UX should succeed regardless
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
-
-  return NextResponse.json({ ok: true })
+  if (!body || typeof body !== 'object')
+    return NextResponse.json({ error: 'Invalid feedback' }, { status: 400 })
+  const mood = typeof body.mood === 'string' ? body.mood.slice(0, 100) : ''
+  const message =
+    typeof body.message === 'string' ? body.message.slice(0, 5000) : ''
+  const page = typeof body.page === 'string' ? body.page.slice(0, 2000) : ''
+  if (!mood && !message.trim())
+    return NextResponse.json(
+      { error: 'Add a mood or message' },
+      { status: 400 },
+    )
+  if (!process.env.RESEND_API_KEY || !process.env.FOUNDER_EMAIL)
+    return NextResponse.json(
+      { error: 'Feedback delivery is unavailable' },
+      { status: 503 },
+    )
+  try {
+    const result = await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from: 'ShipAudit Feedback <onboarding@resend.dev>',
+      to: process.env.FOUNDER_EMAIL,
+      subject: `ShipAudit feedback: ${mood || 'Note'}`,
+      text: `Mood: ${mood}\nMessage: ${message}\nPage: ${page}\nTime: ${new Date().toISOString()}`,
+    })
+    if (result.error) throw new Error('Delivery failed')
+    return NextResponse.json({ ok: true })
+  } catch {
+    return NextResponse.json(
+      { error: 'Feedback delivery failed' },
+      { status: 502 },
+    )
+  }
 }

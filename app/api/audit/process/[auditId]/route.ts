@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Redis } from '@upstash/redis'
+import { getRedis } from '@/lib/redis'
 import { generateReportId } from '@/lib/utils'
+import { inspectMeasurement } from '@/lib/report-view'
 import { parseVitals } from '@/lib/vitals'
 import { runRuleEngine } from '@/lib/rule-engine'
 import { generateExecutiveSummary, generateCursorPrompt } from '@/lib/summarize'
@@ -10,38 +11,49 @@ import { analyzeFonts } from '@/lib/font-analyzer'
 import { getPostHogClient } from '@/lib/posthog-server'
 import type { AuditReport, DetectedStack, LighthouseResult } from '@/lib/types'
 
-export const maxDuration = 10
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-})
+export const maxDuration = 60
 
 export async function POST(
   _req: NextRequest,
-  { params }: { params: Promise<{ auditId: string }> }
+  { params }: { params: Promise<{ auditId: string }> },
 ) {
+  const redis = getRedis()
   const { auditId } = await params
 
-  const [lhrRaw, statusRaw] = await Promise.all([
+  const [lhrRaw, statusRaw, requestData] = await Promise.all([
     redis.get<string>(`lhr:${auditId}`),
     redis.get<string>(`audit-status:${auditId}`),
+    redis.get<{ url: string; stack: DetectedStack }>(
+      `audit-request:${auditId}`,
+    ),
   ])
 
-  if (!lhrRaw) return NextResponse.json({ error: 'LHR not found' }, { status: 404 })
-  if (!statusRaw) return NextResponse.json({ error: 'Status not found' }, { status: 404 })
+  if (!lhrRaw)
+    return NextResponse.json({ error: 'LHR not found' }, { status: 404 })
+  if (!statusRaw)
+    return NextResponse.json({ error: 'Status not found' }, { status: 404 })
 
-  const statusData = typeof statusRaw === 'string' ? JSON.parse(statusRaw) : statusRaw
-  const { url, stack } = statusData as { url: string; stack: DetectedStack }
+  const statusData =
+    typeof statusRaw === 'string' ? JSON.parse(statusRaw) : statusRaw
+  const { url, stack } =
+    requestData ?? (statusData as { url: string; stack: DetectedStack })
 
   let lhrParsed: Record<string, unknown>
   try {
-    lhrParsed = typeof lhrRaw === 'string' ? JSON.parse(lhrRaw) : (lhrRaw as Record<string, unknown>)
+    lhrParsed =
+      typeof lhrRaw === 'string'
+        ? JSON.parse(lhrRaw)
+        : (lhrRaw as Record<string, unknown>)
   } catch {
     await redis.set(
       `audit-status:${auditId}`,
-      JSON.stringify({ status: 'error', message: 'Invalid Lighthouse result' }),
-      { ex: 600 }
+      JSON.stringify({
+        ...statusData,
+        status: 'error',
+        code: 'result',
+        message: 'Invalid Lighthouse result',
+      }),
+      { ex: 600 },
     )
     return NextResponse.json({ error: 'Invalid LHR' }, { status: 422 })
   }
@@ -49,17 +61,37 @@ export async function POST(
   if (lhrParsed.error) {
     await redis.set(
       `audit-status:${auditId}`,
-      JSON.stringify({ status: 'error', message: lhrParsed.error }),
-      { ex: 600 }
+      JSON.stringify({
+        ...statusData,
+        status: 'error',
+        code: 'site_down',
+        message: lhrParsed.error,
+      }),
+      { ex: 600 },
     )
     return NextResponse.json({ ok: true })
   }
 
   try {
+    if (!url || !stack) throw new Error('Audit request metadata is missing')
     const lhr = lhrParsed as unknown as LighthouseResult
 
+    const measurement = inspectMeasurement(lhr)
+    if (measurement.error) {
+      await redis.set(
+        `audit-status:${auditId}`,
+        JSON.stringify({
+          ...statusData,
+          status: 'error',
+          ...measurement.error,
+        }),
+        { ex: 600 },
+      )
+      await redis.del(`lhr:${auditId}`)
+      return NextResponse.json({ ok: true })
+    }
     const vitals = parseVitals(lhr)
-    const { score, findings } = runRuleEngine(lhr, stack.framework)
+    const { score, findings, checks } = runRuleEngine(lhr, stack.framework)
     const thirdParty = analyzeThirdParties(lhr)
     const images = analyzeImages(lhr)
     const fonts = analyzeFonts(lhr)
@@ -88,6 +120,12 @@ export async function POST(
       score,
       vitals,
       findings,
+      checks,
+      dataVersion: 2,
+      measurement: {
+        status: measurement.missingCategories.length ? 'partial' : 'complete',
+        missingCategories: measurement.missingCategories,
+      },
       executiveSummary,
       cursorPrompt,
       thirdParty,
@@ -95,37 +133,50 @@ export async function POST(
       fonts,
     }
 
-    await redis.set(`report:${reportId}`, report, { ex: 3600 })
+    await redis.set(`report:v2:${reportId}`, report, { ex: 3600 })
     await redis.set(
       `audit-status:${auditId}`,
       JSON.stringify({ status: 'complete', reportId, url }),
-      { ex: 600 }
+      { ex: 600 },
     )
     await redis.del(`lhr:${auditId}`)
+    await redis.del(`audit-request:${auditId}`)
 
-    const posthog = getPostHogClient()
-    posthog.capture({
-      distinctId: url,
-      event: 'audit_completed',
-      properties: {
-        url,
-        report_id: reportId,
-        framework: stack.framework,
-        deploy_platform: stack.deployPlatform,
-        score: score.current,
-        achievable_score: score.achievable,
-        findings_count: findings.length,
-      },
-    })
-    await posthog.shutdown()
+    if (process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN) {
+      try {
+        const posthog = getPostHogClient()
+        posthog.capture({
+          distinctId: url,
+          event: 'audit_completed',
+          properties: {
+            url,
+            report_id: reportId,
+            framework: stack.framework,
+            deploy_platform: stack.deployPlatform,
+            score: score.current,
+            achievable_score: score.achievable,
+            findings_count: findings.length,
+          },
+        })
+        await posthog.shutdown()
+      } catch {
+        console.error('[audit] Analytics failed; report is already saved')
+      }
+    }
 
     return NextResponse.json({ ok: true, reportId })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Pipeline failed'
+    console.error('[audit] Report generation failed:', auditId, message)
     await redis.set(
       `audit-status:${auditId}`,
-      JSON.stringify({ status: 'error', message }),
-      { ex: 600 }
+      JSON.stringify({
+        ...statusData,
+        status: 'error',
+        code: 'result',
+        message: 'The report could not be generated. Try a fresh audit.',
+      }),
+      { ex: 600 },
     )
     return NextResponse.json({ error: message }, { status: 500 })
   }
