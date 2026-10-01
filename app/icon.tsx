@@ -10,7 +10,7 @@ export default function Icon() {
         style={{
           width: 32,
           height: 32,
-          background: '#0f172a',
+          background: '#101311',
           borderRadius: 7,
           display: 'flex',
           alignItems: 'center',
@@ -21,7 +21,7 @@ export default function Icon() {
           <polyline
             points="0,8 4,8 7,2 10,14 13,0 16,10 18,8 24,8"
             fill="none"
-            stroke="#818cf8"
+            stroke="#d5f66b"
             strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"

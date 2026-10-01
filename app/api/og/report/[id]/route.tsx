@@ -1,131 +1,107 @@
 import { ImageResponse } from 'next/og'
-import { Redis } from '@upstash/redis'
+import { getRedis } from '@/lib/redis'
 import type { AuditReport } from '@/lib/types'
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-})
-
+import { demoReport } from '@/lib/demo-report'
+import { reportView } from '@/lib/report-view'
 export async function GET(
   _req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
-  const report = await redis.get<AuditReport>(`report:${id}`)
-
-  const domain = report ? new URL(report.url).hostname : 'unknown'
-  const score = report?.score.current ?? 0
-  const achievable = report?.score.achievable ?? 0
-  const findingCount = report?.findings.length ?? 0
-
-  const scoreColor = score >= 90 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444'
-
-  const stats = [
-    `${findingCount} issues found`,
-    'Throttled mobile',
-    'getshipaudit.vercel.app',
-  ]
-
+  const report =
+    id === 'demo'
+      ? demoReport
+      : await getRedis().get<AuditReport>(`report:v2:${id}`)
+  const view = report ? reportView(report) : null
+  const valid = report && view && !view.invalid && !view.legacy && !view.partial
+  const score = valid ? report.score.current : null
+  const color =
+    score === null
+      ? '#a1afa3'
+      : score >= 90
+        ? '#82d6ad'
+        : score >= 60
+          ? '#f4c477'
+          : '#ff9a8e'
   return new ImageResponse(
-    (
+    <div
+      style={{
+        background: '#101311',
+        color: '#f1f3e9',
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        height: '100%',
+        padding: 64,
+        fontFamily: 'sans-serif',
+        borderTop: '6px solid #d5f66b',
+      }}
+    >
       <div
         style={{
-          background: '#0f172a',
-          width: '1200px',
-          height: '630px',
           display: 'flex',
-          flexDirection: 'column',
-          padding: '60px',
-          fontFamily: 'system-ui, sans-serif',
+          justifyContent: 'space-between',
+          fontSize: 28,
         }}
       >
-        {/* Header with pulse mark */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px' }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              background: '#1e293b',
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <svg width="24" height="16" viewBox="0 0 24 16">
-              <polyline
-                points="0,8 4,8 7,2 10,14 13,0 16,10 18,8 24,8"
-                fill="none"
-                stroke="#818cf8"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0px' }}>
-            <span style={{ color: '#94a3b8', fontSize: 18 }}>Ship</span>
-            <span style={{ color: '#818cf8', fontSize: 18 }}>Audit</span>
-            <span style={{ color: '#334155', fontSize: 18, margin: '0 8px' }}>·</span>
-            <span style={{ color: '#475569', fontSize: 18 }}>Stress Test Report</span>
-          </div>
-        </div>
-
-        {/* Domain */}
-        <div
+        <span>
+          Ship<span style={{ color: '#d5f66b' }}>Audit</span>
+        </span>
+        <span style={{ color: '#a1afa3', fontSize: 18 }}>
+          {id === 'demo' ? 'EXAMPLE REPORT' : 'MOBILE LAB TEST'}
+        </span>
+      </div>
+      <div style={{ fontSize: 40, marginTop: 52 }}>
+        {report ? new URL(report.url).hostname : 'Report expired'}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 22,
+          marginTop: 22,
+        }}
+      >
+        <span
           style={{
-            color: '#e2e8f0',
-            fontSize: 36,
-            fontWeight: 'bold',
-            marginBottom: '48px',
-            letterSpacing: '-0.5px',
+            color,
+            fontSize: 130,
+            fontFamily: 'monospace',
+            lineHeight: 1.1,
           }}
         >
-          {domain}
-        </div>
-
-        {/* Score row */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', marginBottom: '24px' }}>
-          <div
-            style={{
-              color: scoreColor,
-              fontSize: 96,
-              fontWeight: 'bold',
-              lineHeight: 1,
-              fontFamily: 'monospace',
-            }}
-          >
-            {`${score}`}
-          </div>
-          <div style={{ color: '#475569', fontSize: 36, fontFamily: 'monospace' }}>/100</div>
-          <div style={{ color: '#334155', fontSize: 24 }}>→</div>
-          <div style={{ color: '#6366f1', fontSize: 28, fontFamily: 'monospace' }}>
-            {`${achievable}/100 achievable`}
-          </div>
-        </div>
-
-        {/* Stats row */}
-        <div style={{ display: 'flex', gap: '12px', marginTop: 'auto' }}>
-          {stats.map((label) => (
-            <div
-              key={label}
-              style={{
-                display: 'flex',
-                background: '#1e293b',
-                border: '1px solid #334155',
-                borderRadius: 8,
-                padding: '10px 20px',
-                color: '#64748b',
-                fontSize: 16,
-              }}
-            >
-              {label}
-            </div>
-          ))}
-        </div>
+          {score ?? '—'}
+        </span>
+        <span style={{ color: '#a1afa3', fontSize: 30 }}>
+          {score === null ? 'Incomplete signal' : '/100'}
+        </span>
+        {valid && (
+          <span style={{ color: '#d5f66b', fontSize: 28, marginLeft: 32 }}>
+            → {report.score.achievable} potential*
+          </span>
+        )}
       </div>
-    ),
-    { width: 1200, height: 630 }
+      <div
+        style={{
+          display: 'flex',
+          gap: 24,
+          marginTop: 'auto',
+          color: '#a1afa3',
+          fontSize: 20,
+        }}
+      >
+        <span>
+          {valid
+            ? `${view.findings.length} failed checks · prioritized fixes`
+            : 'Run a fresh audit for a reliable measurement'}
+        </span>
+        <span>getshipaudit.vercel.app</span>
+      </div>
+      <div style={{ color: '#a1afa3', fontSize: 14, marginTop: 16 }}>
+        *Estimated gains overlap and need a re-test. Reports expire after one
+        hour.
+      </div>
+    </div>,
+    { width: 1200, height: 630 },
   )
 }

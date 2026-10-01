@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google'
 import './globals.css'
 import FeedbackWidget from '@/components/FeedbackWidget'
 
@@ -14,12 +14,24 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-inter-mono',
   display: 'swap',
 })
+const display = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'ShipAudit | AI-Powered Performance Audit',
   description:
-    'Paste any URL. Get a stress-tested performance audit measured on real mobile conditions. AI-generated findings ranked by impact with framework-specific fix instructions.',
-  keywords: ['performance audit', 'web performance', 'core web vitals', 'lighthouse', 'Next.js performance', 'AI performance tool'],
+    'Paste any URL. Get a stress-tested performance audit under simulated mobile conditions. AI-generated findings ranked by impact with framework-specific fix instructions.',
+  keywords: [
+    'performance audit',
+    'web performance',
+    'core web vitals',
+    'lighthouse',
+    'Next.js performance',
+    'AI performance tool',
+  ],
   authors: [{ name: 'ShipAudit' }],
   creator: 'ShipAudit',
   metadataBase: new URL('https://getshipaudit.vercel.app'),
@@ -30,13 +42,21 @@ export const metadata: Metadata = {
     siteName: 'ShipAudit',
     title: 'ShipAudit | AI-Powered Performance Audit',
     description:
-      'Paste any URL. Get a stress-tested performance audit in under 90 seconds. Real-world mobile conditions. AI fix instructions ready to paste into Cursor.',
-    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'ShipAudit | AI-Powered Performance Audit' }],
+      'Paste any URL. Get a stress-tested performance audit with simulated mobile conditions. AI fix instructions ready to paste into Cursor.',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'ShipAudit | AI-Powered Performance Audit',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'ShipAudit | AI-Powered Performance Audit',
-    description: 'Paste any URL. Get a stress-tested performance audit in under 90 seconds.',
+    description:
+      'Paste any URL. Get a stress-tested performance audit with prioritized fixes.',
     images: ['/opengraph-image'],
     creator: '@buildwithyudi',
   },
@@ -54,9 +74,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      data-scroll-behavior="smooth"
+      className={`${inter.variable} ${jetbrainsMono.variable} ${display.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <a href="#main" className="skip-link">
+          Skip to content
+        </a>
         {children}
         <FeedbackWidget />
       </body>

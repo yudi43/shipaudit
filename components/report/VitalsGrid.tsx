@@ -10,6 +10,7 @@ const FULL_NAME: Record<WebVital['metric'], string> = {
 }
 
 const STATUS_STYLE: Record<VitalStatus, { value: string; pill: string; label: string }> = {
+  'unavailable': { value: 'text-slate-500', pill: 'bg-slate-100 text-slate-600', label: 'Unavailable' },
   'good':              { value: 'text-slate-900',  pill: 'bg-slate-100 text-slate-600',    label: 'Good' },
   'needs-improvement': { value: 'text-amber-700',  pill: 'bg-amber-50 text-amber-700',     label: 'Needs Improvement' },
   'poor':              { value: 'text-red-600',    pill: 'bg-red-50 text-red-600',          label: 'Poor' },

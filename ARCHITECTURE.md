@@ -2,7 +2,7 @@
 
 ## What it is
 
-ShipAudit is a no-login AI-powered website performance auditor. A user pastes a URL, the system runs Lighthouse on it in a GitHub Actions runner, processes the results through a deterministic analysis pipeline, adds a short AI-written summary, and returns a shareable report — all in under 90 seconds.
+ShipAudit is a no-login AI-powered website performance auditor. A user pastes a URL, the system runs Lighthouse on it in a GitHub Actions runner, processes the results through a deterministic analysis pipeline, adds a short AI-written summary, and returns a shareable report. Runner queues and page complexity affect completion time.
 
 ---
 
@@ -13,7 +13,7 @@ ShipAudit is a no-login AI-powered website performance auditor. A user pastes a 
 | Framework | Next.js 16 (App Router) on Vercel |
 | Database / cache | Upstash Redis (serverless REST) |
 | Lighthouse runner | GitHub Actions (`workflow_dispatch`) |
-| AI prose | Groq API (`llama-3.3-70b-versatile`) |
+| AI prose | Groq API (`openai/gpt-oss-120b`, low reasoning effort) |
 | Email | Resend |
 | Analytics | PostHog (client + server) |
 | UI animation | Framer Motion |
@@ -30,14 +30,15 @@ Browser
   │     │
   │     ├─ normalizeUrl()          strip fragment, ensure https://
   │     ├─ generateReportId(url)   SHA-256 → 16-char hex (deterministic per URL)
-  │     ├─ Redis GET report:{id}   → cache hit? return { reportId, status:'complete' }
+  │     ├─ Redis GET report:v2:{id}   → cache hit? return { reportId, status:'complete' }
   │     ├─ detectFramework(url)    fetch HTML+headers, detect Next.js/Nuxt/etc.
   │     ├─ randomUUID()            fresh auditId for this run
-  │     ├─ GitHub Actions dispatch → triggers lighthouse-audit.yml
+  │     ├─ Redis SET audit-request:{auditId}  { url, stack }
   │     ├─ Redis SET audit-status:{auditId}  { status:'pending', url, stack }
+  │     ├─ GitHub Actions dispatch → triggers lighthouse-audit.yml
   │     └─ return { auditId, reportId, status:'pending' }
   │
-  ├─ Browser polls GET /api/audit/status/{auditId}  every 5s
+  ├─ Browser polls GET /api/audit/status/{auditId}  every 4s
   │
   │     Meanwhile, GitHub Actions:
   │     ├─ installs Lighthouse globally
@@ -50,13 +51,13 @@ Browser
   │     └─ Redis SET audit-status:{auditId}  { status:'processing' }
   │
   ├─ GET /api/audit/status/{auditId}  sees 'processing'
-  │     ├─ updates status to 'running'  (prevents double-trigger on next poll)
-  │     ├─ fire-and-forget: POST /api/audit/process/{auditId}
+  │     ├─ acquires audit-lock:{auditId} with Redis SET NX (90s TTL)
+  │     ├─ Next.js after: await POST /api/audit/process/{auditId}
   │     └─ returns { status:'processing' } to browser
   │
   ├─ POST /api/audit/process/{auditId}
   │     ├─ Redis GET lhr:{auditId}   raw LHR
-  │     ├─ Redis GET audit-status:{auditId}   url + stack
+  │     ├─ Redis GET audit-request:{auditId}  immutable url + stack
   │     ├─ parseVitals(lhr)          extract LCP/INP/CLS/FCP/TTFB
   │     ├─ runRuleEngine(lhr, fw)    score + ranked findings
   │     ├─ analyzeThirdParties(lhr)  blocking time by vendor
@@ -64,55 +65,31 @@ Browser
   │     ├─ analyzeFonts(lhr)         render-blocking, missing font-display
   │     ├─ [parallel] generateExecutiveSummary()  Groq → 2-3 prose sentences
   │     ├─ [parallel] generateCursorPrompt()      Groq → paste-into-Cursor fix prompt
-  │     ├─ Redis SET report:{reportId}  full AuditReport (1h TTL)
+  │     ├─ Redis SET report:v2:{reportId}  full AuditReport (1h TTL)
   │     ├─ Redis SET audit-status:{auditId}  { status:'complete', reportId }
-  │     ├─ Redis DEL lhr:{auditId}
+  │     ├─ Redis DEL lhr:{auditId}, audit-request:{auditId}
   │     └─ PostHog event: audit_completed
   │
-  └─ Browser poll sees 'complete' → router.push(/report/{reportId})
+  └─ Browser sees 'complete' → report page → IndexedDB snapshot → /history
 ```
 
 ---
 
 ## File-by-file reference
 
-### `app/page.tsx` — Homepage
+### Homepage, report, and history
 
-Client component. Manages the URL input form, the animated loading overlay, and the waitlist signup widget at the bottom.
+`app/page.tsx` is a server component that reads optional URL/refresh search parameters and renders `components/HomeClient.tsx`. The client validates and normalizes the URL, dispatches an audit, polls every four seconds for up to five minutes, and renders `AuditLoading` with stages derived from API state. The elapsed timer and rotating educational notes do not represent measured progress.
 
-**Key behaviors:**
-- Auto-focuses the URL input on mount
-- On submit: POST `/api/audit` → cache hit goes directly to report, otherwise enters polling loop
-- Polling: 60 attempts × 5s = 5 min max before timeout error
-- Step labels advance on timers (not API events) to give a live feel: step 2 at 8s, step 3 + first poll at 40s
-- On complete: brief step-4 flash (600ms) then `router.push`
-- Loading overlay is a Framer Motion `AnimatePresence` fullscreen takeover
+`app/report/[id]/page.tsx` fetches `report:v2:{id}` from Redis and renders `ReportDashboard`. `/report/demo` is a clearly labeled illustrative report. Legacy `report:{id}` data remains readable but ambiguous measurements require a fresh run. The report includes prioritized failed checks, nullable vitals, passing/informational checks, filters, affected resources, an AI prompt, export, and a contextual Guard signup.
 
-### `app/report/[id]/page.tsx` — Report page
-
-Server component. Fetches `report:{id}` from Redis on the server, calls `notFound()` if missing.
-
-Renders these sections in order:
-1. `StackBadges` — framework + platform pills
-2. `MeasurementContext` — explains mobile throttling methodology
-3. `ScoreCard` — animated arc + score counter, top 3 opportunities
-4. `ExecutiveSummary` — Groq prose
-5. `VitalsGrid` — LCP/INP/CLS/FCP/TTFB color-coded cards
-6. `ThirdPartyAudit` — blocking time by vendor (only if services found)
-7. `ImageAudit` — wasted KB per image (only if >50KB total wasted)
-8. `FontAudit` — render-blocking and missing font-display
-9. `FindingsList` — ranked by impact, framework-aware fix per finding
-10. `CursorPromptButton` — copy-to-clipboard with animated checkmark
-11. `ExportButton` — GitHub Issue / Linear / Markdown download
-12. `WaitlistCTA` — email capture
-
-Also generates dynamic `<title>`, `<meta description>`, and OG tags per report.
+After a completed home-flow audit opens, `ReportDashboard` saves a full snapshot in IndexedDB through `lib/audit-history.ts`. A visitor can also save an online report explicitly. `/history` lists, searches, and deletes these records; `/history/[key]` renders a saved snapshot through `SavedReport`. Timestamped keys retain separate runs of the same URL. The latest 50 measured reports are kept; demo and failed measurements are excluded. Snapshots outlive Redis expiry but stay on the browser/origin where they were saved. No account, cross-device sync, or backend history table is required.
 
 ### `app/api/audit/route.ts` — Audit trigger
 
-Validates URL, checks cache, detects framework, fires GitHub Actions workflow, writes `audit-status:{auditId}` to Redis. Returns immediately with `auditId` + `reportId`.
+Validates URL, checks cache, detects framework, writes immutable request metadata and pending status to Redis before dispatching GitHub Actions. Returns immediately with `auditId` + `reportId`.
 
-`maxDuration = 10` — this is a short-lived Vercel serverless function; the heavy work happens in GitHub Actions.
+`maxDuration = 30`. Framework detection and workflow dispatch have explicit timeouts; Lighthouse runs in GitHub Actions.
 
 ### `app/api/audit/callback/route.ts` — Lighthouse result receiver
 
@@ -120,24 +97,24 @@ Receives the raw LHR JSON POSTed by the GitHub Actions workflow. Authenticates v
 
 ### `app/api/audit/status/[auditId]/route.ts` — Status poller
 
-The browser polls this every 5s. State machine:
+The browser polls this every 4s. State machine:
 
 ```
-pending → processing → running → complete
-                              ↘ error
+pending → processing → complete
+                     ↘ error
 ```
 
-The `processing → running` transition is the key one: it fires the process endpoint as a fire-and-forget fetch so the short-TTL status endpoint doesn't block on the full analysis pipeline.
+A Redis NX lock prevents duplicate processors. Next.js `after` awaits the processor after returning the polling response, keeping the invocation alive. The status remains `processing` while analysis runs. A built-in Vercel automation header allows the self-request on protected previews. `maxDuration = 60`.
 
 ### `app/api/audit/process/[auditId]/route.ts` — Analysis pipeline
 
 The heart of the backend. Reads LHR + metadata from Redis, runs all analysis in sequence, calls Groq in parallel for both prose outputs, assembles the `AuditReport`, and writes it to Redis. Also fires the `audit_completed` PostHog event.
 
-`maxDuration = 10` — designed to complete well within Vercel's function timeout.
+`maxDuration = 60`. Groq requests run in parallel with 20-second client timeouts and deterministic fallback text. Request metadata is stored separately so a status transition cannot discard URL/framework context. Invalid or blocked Lighthouse results produce an error rather than a misleading zero score.
 
 ### `app/api/waitlist/route.ts` — Email capture
 
-Validates email, sends a notification to the founder via Resend, captures a PostHog `waitlist_signup_completed` event.
+Validates email and persists it in the Redis `guard-waitlist` set. Notification through Resend is optional; its failure does not discard the signup.
 
 ### `app/api/feedback/route.ts` — In-app feedback
 
@@ -159,7 +136,7 @@ All shared TypeScript types. Key ones:
 - `LighthouseResult` — typed subset of LHR that the app reads
 - `Finding` — a ranked performance issue with title, description, fix, and estimated point impact
 - `ShipAuditScore` — current score, achievable score, top 3 opportunities, category breakdown
-- `WebVital` — one of LCP/INP/CLS/FCP/TTFB with value, unit, and good/needs-improvement/poor status
+- `WebVital` — one of LCP/INP/CLS/FCP/TTFB with nullable value, unit, and good/needs-improvement/poor/unavailable status
 - `ThirdPartyAudit`, `ImageAudit`, `FontAudit` — structured analysis outputs
 
 ### `lib/utils.ts`
@@ -175,13 +152,13 @@ Fetches the URL's HTML + response headers (10s timeout) and looks for known sign
 
 - **Framework**: HTML markers like `__NEXT_DATA__`, `__NUXT_DATA__`, `__remixContext`, `<astro-island>`, `ng-version`, `data-v-app`, `data-reactroot`, `wp-content`
 - **Platform**: Response headers like `x-vercel-id`, `x-railway-request-id`, `x-nf-request-id`, `x-powered-by`, `server`
-- **Tailwind**: Regex match on common utility class patterns in the HTML
+- **Tailwind**: Tailwind CSS variables or multiple distinctive utility tokens in actual class attributes
 
 Returns `DetectedStack` with `framework`, `deployPlatform`, `hasTailwind`, `rawSignals`.
 
 ### `lib/vitals.ts`
 
-Extracts the 5 Core Web Vitals from the LHR `audits` object:
+Extracts five performance metrics from the LHR `audits` object:
 
 | Vital | LHR audit key | Good | Needs improvement |
 |---|---|---|---|
@@ -191,7 +168,7 @@ Extracts the 5 Core Web Vitals from the LHR `audits` object:
 | FCP | `first-contentful-paint` | ≤1800ms | ≤3000ms |
 | TTFB | `server-response-time` | ≤800ms | ≤1800ms |
 
-Thresholds are Google's official CWV thresholds — never changed.
+LCP, INP, and CLS use Core Web Vitals thresholds; FCP and TTFB use their own published performance thresholds. Missing timings remain unavailable; genuine zero CLS stays valid. A navigation Lighthouse run does not provide field INP.
 
 ### `lib/rule-engine.ts`
 
@@ -203,11 +180,11 @@ ShipAuditScore = performance×0.5 + accessibility×0.2 + seo×0.15 + bestPractic
 achievable = min(100, current + sum of top-3 finding impacts)
 ```
 
-**Findings:** For each of ~25 known Lighthouse audit IDs, if the audit score is `< 0.9` (or null), a `Finding` is created with:
+**Findings:** For each of ~25 known Lighthouse audit IDs, a failed numeric audit score `< 0.9` creates a `Finding` with:
 - A hardcoded `estimatedPointImpact` (e.g. render-blocking-resources = 18pts)
 - A framework-aware fix instruction — `FIX_MAP[auditId][framework]` with a `'default'` fallback
 
-Findings are sorted by `estimatedPointImpact` descending. The top 3 become `topOpportunities`.
+Findings are sorted by `estimatedPointImpact` descending. The top 3 become `topOpportunities`. Passing and informational/manual checks are retained separately with no problem-point value. Modern Lighthouse insight aliases map to the same rule definitions and supersede duplicate legacy rows. Missing categories make a partial measurement explicit.
 
 ### `lib/summarize.ts`
 
@@ -244,12 +221,12 @@ Triggered by `workflow_dispatch` with three inputs: `url`, `callback_url`, `audi
 
 Steps:
 1. Checkout repo (needed to satisfy `actions/checkout`)
-2. Set up Node 18
-3. `npm install -g lighthouse`
+2. Set up Node 22
+3. `npm install -g lighthouse@12.8.2`
 4. Run Lighthouse → `lhr.json` (`continue-on-error: true` so step 5 always runs)
 5. POST `lhr.json` (or an error JSON) to `callback_url` with `x-audit-id` and `x-audit-secret` headers
 
-Timeout: 5 minutes per job. The secret `AUDIT_CALLBACK_SECRET` in GitHub must match the Vercel env var.
+Inputs are passed through environment variables rather than inserted into shell scripts. Callback HTTP failures fail the workflow step. Timeout: 5 minutes per job. The secret `AUDIT_CALLBACK_SECRET` in GitHub must match the Vercel env var.
 
 ---
 
@@ -257,7 +234,10 @@ Timeout: 5 minutes per job. The secret `AUDIT_CALLBACK_SECRET` in GitHub must ma
 
 | Key | TTL | Content |
 |---|---|---|
-| `report:{reportId}` | 1 hour | Full `AuditReport` JSON |
+| `report:v2:{reportId}` | 1 hour | Full version-2 `AuditReport` JSON |
+| `report:{reportId}` | 1 hour | Legacy report, read-only fallback |
+| `audit-request:{auditId}` | 10 min | Immutable `{ url, stack }` |
+| `audit-lock:{auditId}` | 90 sec | Prevent duplicate processors |
 | `audit-status:{auditId}` | 10 min | `{ status, url, stack, reportId? }` |
 | `lhr:{auditId}` | 10 min | Raw Lighthouse JSON (deleted after processing) |
 
@@ -267,24 +247,7 @@ Timeout: 5 minutes per job. The secret `AUDIT_CALLBACK_SECRET` in GitHub must ma
 
 ## Components overview
 
-All report components live in `components/report/`. They're client components with Framer Motion animations.
-
-| Component | What it renders |
-|---|---|
-| `ScoreCard` | Animated arc ring, score counter (0→N), breakdown bars, top 3 opportunities |
-| `VitalsGrid` | 5 metric cards, color-coded by good/needs-improvement/poor |
-| `FindingsList` | Ranked findings, each with title, description, framework-aware fix, impact badge |
-| `ExecutiveSummary` | Groq prose in a quoted block with left accent border |
-| `ThirdPartyAudit` | Table of third-party services sorted by blocking time |
-| `ImageAudit` | Per-image issues: wasted KB, format, lazy loading |
-| `FontAudit` | Font issues: render-blocking, missing font-display, source |
-| `CursorPromptButton` | Copy-to-clipboard with animated ✓ checkmark, fires PostHog event |
-| `ExportButton` | Dropdown: GitHub Issue / Linear / Markdown download |
-| `WaitlistCTA` | Email capture, POST `/api/waitlist` |
-| `StackBadges` | Framework + platform pills |
-| `MeasurementContext` | Explains mobile throttling methodology |
-| `ReanalyzeButton` | Clears cache and re-runs the audit for the same URL |
-| `ReportFadeIn` | Wraps the report in a staggered Framer Motion fade-in |
+The current interface uses `HomeClient`, `AuditLoading`, `AuditHistory`, `SavedReport`, `ScoreGauge`, `GuardPanel`, `FeedbackWidget`, `report/ReportDashboard`, `report/ExportButton`, and `ui/CopyButton`. Older report components remain in the repository for reference. See [DESIGN.md](DESIGN.md) for tokens, screen behavior, motion, accessibility, and edge states.
 
 ---
 
@@ -300,6 +263,7 @@ GITHUB_TOKEN                  # PAT with actions:write scope
 GITHUB_REPO_OWNER             # e.g. buildwithyudi
 GITHUB_REPO_NAME              # e.g. shipaudit
 AUDIT_CALLBACK_SECRET         # Must match GitHub Actions secret of same name
+AUDIT_CALLBACK_ORIGIN         # Optional public receiver for protected previews
 NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN
 NEXT_PUBLIC_POSTHOG_HOST
 ```
@@ -312,8 +276,8 @@ NEXT_PUBLIC_POSTHOG_HOST
 
 **Reports are cached by URL.** The same URL always produces the same `reportId` (SHA-256 hash). A cache hit skips the entire pipeline and returns instantly.
 
-**No auth, no accounts.** The report URL is the only access mechanism. Reports expire after 1 hour.
+**No auth, no accounts.** Online reports are accessible by URL and expire after one hour. Browser-local IndexedDB snapshots remain until removed, cleared, or evicted.
 
-**Vercel function budget.** Both `/api/audit` and `/api/audit/process` have `maxDuration = 10`. The pipeline is designed to fit. The Groq calls run in parallel to minimize wall time.
+**Vercel function budget.** `/api/audit` allows 30 seconds; status and processing allow 60 seconds. Lighthouse runs outside Vercel. Parallel Groq calls have explicit timeouts.
 
 **lighthouse-worker/ is retired.** The `lighthouse-worker/` Express service was an earlier design that ran Lighthouse on Railway. It's kept for reference but excluded from builds. GitHub Actions is now the runner.

@@ -5,7 +5,8 @@ interface LogoProps {
 
 export default function Logo({ size = 'md', theme = 'dark' }: LogoProps) {
   const iconPx = size === 'sm' ? 28 : size === 'md' ? 36 : 48
-  const textSize = size === 'sm' ? 'text-base' : size === 'md' ? 'text-xl' : 'text-2xl'
+  const textSize =
+    size === 'sm' ? 'text-base' : size === 'md' ? 'text-xl' : 'text-2xl'
   const textColor = theme === 'dark' ? 'text-white' : 'text-slate-900'
   const radius = Math.round(iconPx * 0.22)
 
@@ -23,15 +24,18 @@ export default function Logo({ size = 'md', theme = 'dark' }: LogoProps) {
         >
           <polyline
             points="0,8 4,8 7,2 10,14 13,0 16,10 18,8 24,8"
-            stroke="#818cf8"
+            stroke="#d5f66b"
             strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
         </svg>
       </div>
-      <span className={`${textSize} font-bold tracking-tight ${textColor}`}>
-        Ship<span className="text-indigo-400">Audit</span>
+      <span
+        className={`${textSize} font-bold tracking-tight ${textColor}`}
+        style={{ fontFamily: 'var(--font-display)' }}
+      >
+        Ship<span style={{ color: '#d5f66b' }}>Audit</span>
       </span>
     </div>
   )
