@@ -345,8 +345,9 @@ input:focus {
 .url-control input {
   width: 100%;
   min-width: 0;
+  min-height: 44px;
   border: 0;
-  padding: 9px 2px;
+  padding: 10px 4px;
   background: none;
   font-family: var(--font-inter-mono);
   font-size: 12px;
@@ -2007,7 +2008,8 @@ textarea:focus-visible {
   border: 0;
 }
 .url-control input:focus-visible {
-  outline-offset: 0;
+  /* The surrounding control already provides the input's focus indicator. */
+  outline: none;
 }
 .stage-list small {
   opacity: 1;
